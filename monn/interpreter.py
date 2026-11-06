@@ -8,6 +8,9 @@ from .widgets import Calculator, FloatingWindow
 from .style import StyleManager
 from .features import FeatureManager
 
+class _BreakLoop(Exception):
+    """Internal signal used by the nearest enclosing loop."""
+
 class MonnInterpreter:
     COMPARATORS = {
         "==": lambda a,b: a == b, "=": lambda a,b: a == b, "!=": lambda a,b: a != b,
@@ -85,10 +88,23 @@ class MonnInterpreter:
             for index in range(count):
                 self.vars["شماره_تکرار"] = index + 1
                 self.vars["loop_index"] = index
-                self._exec_children(node)
+                try:
+                    self._exec_children(node)
+                except _BreakLoop:
+                    break
         elif op == "LOOP_START":
-            # An unbounded loop is intentionally not implicit; legacy block runs once.
-            self._exec_children(node)
+            # Open-ended loops are bounded and must explicitly break.
+            for index in range(10000):
+                self.vars["شماره_تکرار"] = index + 1
+                self.vars["loop_index"] = index
+                try:
+                    self._exec_children(node)
+                except _BreakLoop:
+                    break
+            else:
+                raise MonnRuntimeError("حلقه به سقف ۱۰۰۰۰ تکرار رسید؛ شرط توقف را بررسی کن")
+        elif op == "BREAK_LOOP":
+            raise _BreakLoop()
         elif op == "IF_START":
             self._exec_children(node) if self._condition(p) else self._exec_nodes(node.alternate)
         elif op in ("ELSE", "BLOCK_END", "IF_END"): return
