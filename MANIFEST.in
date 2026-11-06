@@ -1,3 +1,4 @@
 include README.md
 include LICENSE
 recursive-include examples *.monn
+recursive-include docs *.md
