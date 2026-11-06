@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 
 from .ai import AIClient
-from .media import save_generated_image, show_image, show_3d_model, choose_file
+from .media import save_generated_image, show_image, show_3d_model, choose_file, create_primitive_model
 
 
 class FeatureManager:
@@ -127,3 +127,8 @@ class FeatureManager:
         path = path or choose_file(self.app.root, [("3D models", "*.obj *.stl *.ply *.glb *.gltf"), ("All files", "*.*")])
         if path:
             show_3d_model(self.app.root, path)
+
+    def create_3d_model(self, shape="cube"):
+        path = create_primitive_model(shape)
+        show_3d_model(self.app.root, path)
+        return path
