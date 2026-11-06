@@ -62,6 +62,7 @@ COMMANDS = {
     "..image:{prompt}": ("GENERATE_IMAGE", {"prompt": str}),
     "..openimage": ("OPEN_IMAGE", {}),
     "..model3d": ("OPEN_3D", {}),
+    "..create3d:{shape}": ("CREATE_3D", {"shape": str}),
     "..ask:{prompt}": ("ASK_TEXT", {"prompt": str}),
     "...clear": ("CLEAR_ALL", {}),
     "...quit": ("QUIT", {}),
