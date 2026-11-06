@@ -5,4 +5,4 @@
 ..... 'برای تولید عکس، توضیح تصویر را در دستور زیر بنویسید'
 ..image:A cinematic futuristic city at night
 ..openimage
-..model3d
+..create3d:cube
