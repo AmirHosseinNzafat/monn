@@ -37,6 +37,13 @@ class FeatureManager:
         combo.current(0)
         self._add(combo)
 
+    def add_radio(self):
+        value = tk.StringVar(value="گزینه اول")
+        frame = ttk.Frame(self.app.root)
+        for item in ("گزینه اول", "گزینه دوم", "گزینه سوم"):
+            ttk.Radiobutton(frame, text=item, value=item, variable=value).pack(anchor="w")
+        self._add(frame)
+
     def add_slider(self):
         scale = tk.Scale(self.app.root, from_=0, to=100, orient="horizontal", label="مقدار")
         self._add(scale)
