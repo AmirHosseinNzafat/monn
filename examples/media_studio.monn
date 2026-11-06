@@ -1,0 +1,8 @@
+...
+##title:Monn Media Studio
+##size:800x600
+...theme:dark
+..... 'برای تولید عکس، توضیح تصویر را در دستور زیر بنویسید'
+..image:A cinematic futuristic city at night
+..openimage
+..model3d

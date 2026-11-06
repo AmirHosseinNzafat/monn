@@ -1,0 +1,4 @@
+# Install only the features you need:
+Pillow>=10.0
+trimesh>=4.0
+matplotlib>=3.8

@@ -1,0 +1,18 @@
+...
+##title:Monn Styled Interface
+##size:600x420
+...theme:dark
+##bg:#172033
+##fg:#f8fafc
+##font:12
+##padding:8
+##relief:groove
+##cursor:arrow
+##alpha:1.0
+##resizable:1
+..... 'رابط کاربری ساخته شده با Monn'
+.... 'دکمه آزمایشی'
+..combo
+..slider
+..progress
+##color

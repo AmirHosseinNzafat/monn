@@ -1,10 +1,5 @@
-"""Command patterns for the Monn dot-command language.
-
-Implemented operations work in the interpreter; the rest are retained as
-reserved syntax from the original language specification and emit warnings.
-"""
+"""Registered Monn source commands."""
 COMMANDS = {
-    # Windows
     "...": ("CREATE_WINDOW", {}),
     "... | /// {n} .>>...": ("FLOATING_CENTERED", {"n": str}),
     "... <<<": ("WINDOW_MINIMIZE", {}),
@@ -13,7 +8,6 @@ COMMANDS = {
     "... ???": ("WINDOW_HIDE", {}),
     "... !!!": ("WINDOW_SHOW", {}),
     "... @top": ("WINDOW_TOPMOST", {}),
-    # Widgets
     "....": ("CREATE_BUTTON", {"text": str}),
     ".... '{t}'": ("CREATE_BUTTON", {"t": str}),
     ".....": ("CREATE_LABEL", {"text": str}),
@@ -29,67 +23,52 @@ COMMANDS = {
     "..............": ("CREATE_MENU", {}),
     "...............": ("CREATE_COMBOBOX", {}),
     "................": ("CREATE_LISTBOX", {}),
-    # Layout
+    ".................": ("CREATE_TABS", {}),
+    "..................": ("CREATE_CHAT", {}),
     "..<": ("PACK_LEFT", {}),
     "..>": ("PACK_RIGHT", {}),
     "..^": ("PACK_TOP", {}),
     "..v": ("PACK_BOTTOM", {}),
     "..=": ("PLACE_CENTER", {}),
-    # Loops and conditions
     "......[": ("LOOP_START", {}),
     "......]": ("BLOCK_END", {}),
     "......[{n}": ("LOOP_COUNT", {"n": int}),
     "????": ("IF_START", {}),
     "?!?!": ("ELSE", {}),
     "?????": ("IF_END", {}),
-    # Variables and arithmetic (arithmetic operators are reserved)
     "$$ {name} = {val}": ("SET_VAR", {"name": str, "val": str}),
-    "$$+": ("ADD", {}),
-    "$$-": ("SUB", {}),
-    "$$*": ("MUL", {}),
-    "$$/": ("DIV", {}),
-    "$$=": ("EQ", {}),
     "$$print": ("PRINT", {}),
-    "$$eval": ("EVAL", {}),
-    # Calculator
     "..calc": ("CREATE_CALCULATOR", {}),
-    "..calc+": ("CALC_ADD", {}),
-    "..calc-": ("CALC_SUB", {}),
-    "..calc*": ("CALC_MUL", {}),
-    "..calc/": ("CALC_DIV", {}),
-    "..calc=": ("CALC_RESULT", {}),
-    "..calcC": ("CALC_CLEAR", {}),
-    # Appearance
     "##bg:{c}": ("SET_BG", {"c": str}),
     "##fg:{c}": ("SET_FG", {"c": str}),
     "##font:{s}": ("SET_FONT", {"s": int}),
     "##size:{w}x{h}": ("SET_SIZE", {"w": int, "h": int}),
     "##title:{t}": ("SET_TITLE", {"t": str}),
-    # Events
-    "@click": ("ON_CLICK", {}),
-    "@key": ("ON_KEY", {}),
-    "@hover": ("ON_HOVER", {}),
-    "@load": ("ON_LOAD", {}),
-    # Input / output
-    ">>file": ("OPEN_FILE", {}),
-    "<<file": ("SAVE_FILE", {}),
-    ">>msg": ("SHOW_MESSAGE", {}),
-    ">>input": ("ASK_INPUT", {}),
-    # Miscellaneous
-    "...clear": ("CLEAR_ALL", {}),
-    "...quit": ("QUIT", {}),
-    "...wait": ("WAIT", {}),
-    "...sleep:{s}": ("SLEEP", {"s": int}),
-    "...beep": ("BEEP", {}),
-    "...bell": ("BELL", {}),
-    "...rand": ("RANDOM", {}),
-    "...time": ("TIME", {}),
-    "...date": ("DATE", {}),
+    "##color": ("CHOOSE_COLOR", {}),
+    "##padding:{n}": ("SET_PADDING", {"n": int}),
+    "##relief:{r}": ("SET_RELIEF", {"r": str}),
+    "##cursor:{c}": ("SET_CURSOR", {"c": str}),
+    "##alpha:{a}": ("SET_ALPHA", {"a": float}),
+    "##resizable:{v}": ("SET_RESIZABLE", {"v": str}),
     "...theme:dark": ("THEME_DARK", {}),
     "...theme:light": ("THEME_LIGHT", {}),
+    "..tabs": ("CREATE_TABS", {}),
+    "..list": ("CREATE_LISTBOX", {}),
+    "..combo": ("CREATE_COMBOBOX", {}),
+    "..slider": ("CREATE_SLIDER", {}),
+    "..progress": ("CREATE_PROGRESS", {}),
+    "..menu": ("CREATE_MENU", {}),
+    "..chat": ("CREATE_CHAT", {}),
+    "..image:{prompt}": ("GENERATE_IMAGE", {"prompt": str}),
+    "..openimage": ("OPEN_IMAGE", {}),
+    "..model3d": ("OPEN_3D", {}),
+    "..ask:{prompt}": ("ASK_TEXT", {"prompt": str}),
+    "...clear": ("CLEAR_ALL", {}),
+    "...quit": ("QUIT", {}),
+    "...sleep:{s}": ("SLEEP", {"s": int}),
+    ">>msg": ("SHOW_MESSAGE", {}),
 }
 
 
 def get_command_patterns():
-    """Return all registered source patterns."""
     return list(COMMANDS)
