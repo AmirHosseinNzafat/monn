@@ -38,6 +38,11 @@ class LexerParserTests(unittest.TestCase):
         app.vars['امتیاز']=75
         self.assertTrue(app._condition({'left':'$امتیاز','op':'>=','right':'50'}))
         self.assertFalse(app._condition({'left':'$امتیاز','op':'<','right':'50'}))
+    def test_button_actions_update_state(self):
+        app=MonnInterpreter()
+        app._run_action("تنظیم:سکه=2")
+        app._run_action("افزایش:سکه=3")
+        self.assertEqual(app.vars["سکه"],5)
     def test_action_button_token(self):
         token=Lexer().tokenize("دکمه شروع => پیام:بازی آغاز شد")[0]
         self.assertEqual(token.op,"CREATE_BUTTON")
@@ -47,6 +52,9 @@ class LexerParserTests(unittest.TestCase):
         self.assertIn("<!doctype html>",html.lower())
         self.assertIn("سلام",html)
         self.assertIn("شروع",html)
+    def test_web_conditional_is_compiled(self):
+        html=compile_to_html("اگر 3 > 2\nمتن بله\nوگرنه\nمتن خیر\nپایان")
+        self.assertIn("if(3>2)",html)
     def test_web_button_action_is_exported(self):
         html=compile_to_html("دکمه شروع => پیام:آغاز")
         self.assertIn("پیام:آغاز",html)
