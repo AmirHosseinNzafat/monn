@@ -2,8 +2,8 @@ from setuptools import find_packages, setup
 
 setup(
     name="monn-lang",
-    version="1.0.0",
-    description="A dot-command DSL for building Tkinter interfaces",
+    version="1.1.0",
+    description="Persian-friendly language for desktop and web applications",
     packages=find_packages(),
     py_modules=["monn_cli"],
     python_requires=">=3.8",
