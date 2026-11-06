@@ -18,6 +18,13 @@ class LexerParserTests(unittest.TestCase):
         tree=Parser(Lexer().tokenize("تکرار 4\nمتن سلام\nپایان حلقه")).parse()
         self.assertEqual(tree.children[0].op,"LOOP_COUNT")
         self.assertEqual(tree.children[0].params["n"],4)
+    def test_break_outside_loop_is_rejected(self):
+        with self.assertRaises(MonnSyntaxError): Parser(Lexer().tokenize("توقف حلقه")).parse()
+    def test_open_loop_runs_until_break(self):
+        app=MonnInterpreter()
+        src="شروع حلقه\nاگر $شماره_تکرار >= 3\nتوقف حلقه\nپایان\nپایان حلقه"
+        app._exec_children(Parser(Lexer().tokenize(src)).parse())
+        self.assertEqual(app.vars["شماره_تکرار"],3)
     def test_open_loop_and_break_parse(self):
         src='شروع حلقه\nمتن دور\nاگر $شماره_تکرار >= 2\nتوقف حلقه\nپایان\nپایان حلقه'
         loop=Parser(Lexer().tokenize(src)).parse().children[0]
