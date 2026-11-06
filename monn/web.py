@@ -39,19 +39,19 @@ def compile_to_html(source, title="Monn Web App"):
             elif op=="CREATE_TEXTBOX":
                 js.append('add("textarea").placeholder="متن خود را بنویسید";')
             elif op=="CREATE_CHECKBOX":
-                js.append('const c=add("label");const x=document.createElement("input");x.type="checkbox";c.append(x,c.ownerDocument.createTextNode(" گزینه"));')
+                js.append('var c=add("label");var x=document.createElement("input");x.type="checkbox";c.append(x,c.ownerDocument.createTextNode(" گزینه"));')
             elif op=="CREATE_SLIDER":
-                js.append('const s=add("input");s.type="range";s.min=0;s.max=100;')
+                js.append('var s=add("input");s.type="range";s.min=0;s.max=100;')
             elif op=="CREATE_PROGRESS":
-                js.append('const pr=add("progress");pr.max=100;pr.value=65;')
+                js.append('var pr=add("progress");pr.max=100;pr.value=65;')
             elif op=="CREATE_LISTBOX":
-                js.append('const s=add("select");["گزینه اول","گزینه دوم","گزینه سوم"].forEach(v=>{const o=document.createElement("option");o.textContent=v;s.append(o);});')
+                js.append('var s=add("select");["گزینه اول","گزینه دوم","گزینه سوم"].forEach(v=>{var o=document.createElement("option");o.textContent=v;s.append(o);});')
             elif op=="CREATE_COMBOBOX":
                 js.append('const s=add("select");["گزینه اول","گزینه دوم","گزینه سوم"].forEach(v=>{const o=document.createElement("option");o.textContent=v;s.append(o);});')
             elif op=="CREATE_FRAME":
-                js.append('const f=add("section");f.className="panel";')
+                js.append('var f=add("section");f.className="panel";')
             elif op=="CREATE_CANVAS":
-                js.append('const c=add("canvas");c.width=480;c.height=180;c.className="panel";')
+                js.append('var c=add("canvas");c.width=480;c.height=180;c.className="panel";')
             elif op=="SET_TITLE":
                 js.append("document.title="+json.dumps(p["t"],ensure_ascii=False)+";")
             elif op=="SET_BG":
