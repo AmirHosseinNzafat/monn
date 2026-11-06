@@ -97,7 +97,7 @@ class FeatureManager:
                     history.append({"role": "assistant", "content": answer})
                     win.after(0, lambda: append("هوش مصنوعی", answer))
                 except Exception as exc:
-                    win.after(0, lambda: append("خطا", str(exc)))
+                    win.after(0, lambda error=str(exc): append("خطا", error))
                 finally:
                     win.after(0, lambda: send_button.configure(state="normal"))
 
@@ -115,7 +115,7 @@ class FeatureManager:
                 path = save_generated_image(result)
                 self.app.root.after(0, lambda: show_image(self.app.root, path))
             except Exception as exc:
-                self.app.root.after(0, lambda: messagebox.showerror("Monn AI", str(exc)))
+                self.app.root.after(0, lambda error=str(exc): messagebox.showerror("Monn AI", error))
         threading.Thread(target=worker, daemon=True).start()
 
     def open_image(self, path=None):
