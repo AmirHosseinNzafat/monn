@@ -3,6 +3,7 @@ from monn.lexer import Lexer
 from monn.parser import Parser
 from monn.errors import MonnSyntaxError
 from monn.web import compile_to_html
+from monn.interpreter import MonnInterpreter
 
 class LexerParserTests(unittest.TestCase):
     def test_tokenizes_window_and_label(self):
@@ -32,6 +33,11 @@ class LexerParserTests(unittest.TestCase):
         with self.assertRaises(MonnSyntaxError): Lexer().tokenize("not a monn command")
     def test_unclosed_block_raises(self):
         with self.assertRaises(MonnSyntaxError): Parser(Lexer().tokenize("......[3")).parse()
+    def test_numeric_condition(self):
+        app=MonnInterpreter()
+        app.vars['امتیاز']=75
+        self.assertTrue(app._condition({'left':'$امتیاز','op':'>=','right':'50'}))
+        self.assertFalse(app._condition({'left':'$امتیاز','op':'<','right':'50'}))
     def test_action_button_token(self):
         token=Lexer().tokenize("دکمه شروع => پیام:بازی آغاز شد")[0]
         self.assertEqual(token.op,"CREATE_BUTTON")
