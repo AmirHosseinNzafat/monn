@@ -60,7 +60,7 @@ class StyleManager:
                 pass
 
     def set_cursor(self, cursor):
-        allowed = {"arrow", "hand2", "cross", "watch", "xterm", " fleur", "plus"}
+        allowed = {"arrow", "hand2", "cross", "watch", "xterm", "fleur", "plus"}
         cursor = cursor.strip()
         if cursor not in allowed:
             raise ValueError("Unsupported cursor")
