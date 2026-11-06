@@ -32,7 +32,7 @@ COMMANDS = {
     "اگر {left} {op} {right}": ("IF_START", {"left": str, "op": str, "right": str}),
     "وگرنه": ("ELSE", {}), "پایان": ("IF_END", {}),
     "تکرار {n}": ("LOOP_COUNT", {"n": int}),
-    "شروع حلقه": ("LOOP_START", {}), "پایان حلقه": ("BLOCK_END", {}),
+    "شروع حلقه": ("LOOP_START", {}), "پایان حلقه": ("BLOCK_END", {}),\n    "توقف حلقه": ("BREAK_LOOP", {}), "خروج از حلقه": ("BREAK_LOOP", {}), "شکستن حلقه": ("BREAK_LOOP", {}),\n    "......!": ("BREAK_LOOP", {}),
     # Window, styling and media
     "..calc": ("CREATE_CALCULATOR", {}),
     "##bg:{c}": ("SET_BG", {"c": str}), "##fg:{c}": ("SET_FG", {"c": str}),
