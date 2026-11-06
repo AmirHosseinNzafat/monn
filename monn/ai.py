@@ -8,16 +8,17 @@ import urllib.request
 class AIClient:
     def __init__(self, base_url=None, api_key=None, model=None, timeout=90):
         self.base_url = (base_url or os.getenv("MONN_API_BASE", "https://openrouter.ai/api/v1")).rstrip("/")
+        self.image_base_url = os.getenv("MONN_IMAGE_API_BASE", self.base_url).rstrip("/")
         self.api_key = api_key or os.getenv("MONN_API_KEY")
         self.model = model or os.getenv("MONN_MODEL", "openrouter/free")
         self.timeout = timeout
 
-    def _post(self, endpoint, payload):
+    def _post(self, endpoint, payload, base_url=None):
         if not self.api_key:
             raise RuntimeError("کلید API تنظیم نشده است. متغیر MONN_API_KEY را تنظیم کنید.")
         body = json.dumps(payload).encode("utf-8")
         request = urllib.request.Request(
-            self.base_url + endpoint, data=body, method="POST",
+            (base_url or self.base_url) + endpoint, data=body, method="POST",
             headers={"Authorization": "Bearer " + self.api_key,
                      "Content-Type": "application/json",
                      "HTTP-Referer": "https://github.com/AmirHosseinNzafat/monn",
@@ -46,7 +47,7 @@ class AIClient:
         data = self._post("/images/generations", {
             "model": os.getenv("MONN_IMAGE_MODEL", self.model),
             "prompt": prompt, "size": size, "response_format": "b64_json"
-        })
+        }, base_url=self.image_base_url)
         if not data.get("data"):
             raise RuntimeError("سرویس تصویر خروجی قابل استفاده برنگرداند.")
         return data["data"][0]
