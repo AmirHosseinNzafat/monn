@@ -80,7 +80,11 @@ def compile_to_html(source, title="Monn Web App"):
             elif op=="LOOP_COUNT":
                 js.append("for(let i=0;i<Math.max(0,Math.min(10000,"+str(max(0,min(int(p["n"]),10000)))+"));i++){state.loop_index=i;"); emit(n.children); js.append("}")
             elif op=="LOOP_START":
-                js.append("{"); emit(n.children); js.append("}")
+                js.append('for(let i=0;i<10000;i++){state.loop_index=i;state["شماره_تکرار"]=i+1;')
+                emit(n.children)
+                js.append("}")
+            elif op=="BREAK_LOOP":
+                js.append("break;")
             elif op in ("PACK_LEFT","PACK_RIGHT","PACK_TOP","PACK_BOTTOM","PLACE_CENTER"):
                 cls={"PACK_LEFT":"left","PACK_RIGHT":"right","PACK_TOP":"top","PACK_BOTTOM":"bottom","PLACE_CENTER":"center"}[op]
                 js.append('root.classList.add("layout-'+cls+'");')
