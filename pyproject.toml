@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "monn-lang"
+version = "1.0.0"
+description = "A dot-command DSL for building Tkinter interfaces"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [{name = "AmirHosseinNzafat"}]
+
+[project.scripts]
+monn = "monn_cli:main"
