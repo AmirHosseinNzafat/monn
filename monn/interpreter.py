@@ -82,7 +82,7 @@ class MonnInterpreter:
             self.widgets.append(widget)
         elif op == "CREATE_RADIO":
             self._ensure_root()
-            self.features.add_combobox()
+            self.features.add_radio()
         elif op == "CREATE_SLIDER":
             self._ensure_root()
             self.features.add_slider()
