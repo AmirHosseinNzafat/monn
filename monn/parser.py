@@ -39,6 +39,8 @@ class Parser:
                     raise MonnSyntaxError(token.line_no, token.raw, "برای شرط از ????? یا پایان استفاده کن")
                 stack.pop()
             else:
+                if token.op == "BREAK_LOOP" and not any(n.op in ("LOOP_START", "LOOP_COUNT") for n in stack):
+                    raise MonnSyntaxError(token.line_no, token.raw, "توقف حلقه فقط داخل حلقه مجاز است")
                 stack[-1].add(Node(token.op, token.params, token.line_no))
         if len(stack) != 1:
             opener = stack[-1]
