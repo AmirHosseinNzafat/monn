@@ -64,6 +64,20 @@ COMMANDS = {
     "چیدمان چپ": ("PACK_LEFT", {}), "چیدمان راست": ("PACK_RIGHT", {}),
     "چیدمان بالا": ("PACK_TOP", {}), "چیدمان پایین": ("PACK_BOTTOM", {}),
     "وسط‌چین": ("PLACE_CENTER", {}),
+    "ماشین حساب": ("CREATE_CALCULATOR", {}),
+    "تصویر {prompt}": ("GENERATE_IMAGE", {"prompt": str}),
+    "بازکردن تصویر": ("OPEN_IMAGE", {}), "نمایش سه‌بعدی": ("OPEN_3D", {}),
+    "ساخت سه‌بعدی {shape}": ("CREATE_3D", {"shape": str}),
+    "پرسش {prompt}": ("ASK_TEXT", {"prompt": str}),
+    "انتخاب رنگ": ("CHOOSE_COLOR", {}),
+    "عنوان {t}": ("SET_TITLE", {"t": str}),
+    "اندازه {w} در {h}": ("SET_SIZE", {"w": int, "h": int}),
+    "پس‌زمینه {c}": ("SET_BG", {"c": str}), "رنگ متن {c}": ("SET_FG", {"c": str}),
+    "فونت {s}": ("SET_FONT", {"s": int}), "فاصله {n}": ("SET_PADDING", {"n": int}),
+    "شفافیت {a}": ("SET_ALPHA", {"a": float}),
+    "خروج": ("QUIT", {}), "کوچک‌کردن پنجره": ("WINDOW_MINIMIZE", {}),
+    "بزرگ‌کردن پنجره": ("WINDOW_MAXIMIZE", {}), "بستن پنجره": ("WINDOW_CLOSE", {}),
+    "مکث {s}": ("SLEEP", {"s": int}),
 }
 def get_command_patterns():
     return list(COMMANDS)
