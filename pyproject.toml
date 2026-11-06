@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "monn-lang"
-version = "1.0.0"
-description = "A dot-command DSL for building Tkinter interfaces"
+version = "1.1.0"
+description = "Persian-friendly language for desktop and web applications"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
