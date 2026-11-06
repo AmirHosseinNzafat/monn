@@ -18,6 +18,12 @@ class LexerParserTests(unittest.TestCase):
         tree=Parser(Lexer().tokenize("تکرار 4\nمتن سلام\nپایان حلقه")).parse()
         self.assertEqual(tree.children[0].op,"LOOP_COUNT")
         self.assertEqual(tree.children[0].params["n"],4)
+    def test_open_loop_and_break_parse(self):
+        src='شروع حلقه\nمتن دور\nاگر $شماره_تکرار >= 2\nتوقف حلقه\nپایان\nپایان حلقه'
+        loop=Parser(Lexer().tokenize(src)).parse().children[0]
+        self.assertEqual(loop.op,'LOOP_START')
+        self.assertEqual(loop.children[1].op,'IF_START')
+        self.assertEqual(loop.children[1].children[0].op,'BREAK_LOOP')
     def test_if_else_is_nested(self):
         src="اگر 3 > 2\nمتن درست\nوگرنه\nمتن غلط\nپایان"
         node=Parser(Lexer().tokenize(src)).parse().children[0]
@@ -52,6 +58,10 @@ class LexerParserTests(unittest.TestCase):
         self.assertIn("<!doctype html>",html.lower())
         self.assertIn("سلام",html)
         self.assertIn("شروع",html)
+    def test_web_open_loop_compiles_to_repeat(self):
+        html=compile_to_html('شروع حلقه\nمتن دور\nتوقف حلقه\nپایان حلقه')
+        self.assertIn('for(let i=0;i<10000;i++)',html)
+        self.assertIn('break;',html)
     def test_web_conditional_is_compiled(self):
         html=compile_to_html("اگر 3 > 2\nمتن بله\nوگرنه\nمتن خیر\nپایان")
         self.assertIn("if(3>2)",html)
