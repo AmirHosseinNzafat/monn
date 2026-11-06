@@ -11,5 +11,10 @@ requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [{name = "AmirHosseinNzafat"}]
 
+[project.optional-dependencies]
+images = ["Pillow>=10.0"]
+3d = ["trimesh>=4.0", "matplotlib>=3.8"]
+all = ["Pillow>=10.0", "trimesh>=4.0", "matplotlib>=3.8"]
+
 [project.scripts]
 monn = "monn_cli:main"
