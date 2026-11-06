@@ -51,7 +51,7 @@ COMMANDS = {
     "...clear": ("CLEAR_ALL", {}), "...quit": ("QUIT", {}),
     "...sleep:{s}": ("SLEEP", {"s": int}), ">>msg": ("SHOW_MESSAGE", {}),
     # Friendly Persian UI aliases
-    "پنجره": ("CREATE_WINDOW", {}), "دکمه {t}": ("CREATE_BUTTON", {"t": str}),
+    "پنجره": ("CREATE_WINDOW", {}), "دکمه {t} => {action}": ("CREATE_BUTTON", {"t": str, "action": str}),\n    "دکمه {t}": ("CREATE_BUTTON", {"t": str}),
     "متن {t}": ("CREATE_LABEL", {"t": str}), "ورودی": ("CREATE_ENTRY", {}),
     "کادرمتن": ("CREATE_TEXTBOX", {}), "چک‌باکس": ("CREATE_CHECKBOX", {}),
     "گزینه‌ها": ("CREATE_RADIO", {}), "نوارلغزنده": ("CREATE_SLIDER", {}),
