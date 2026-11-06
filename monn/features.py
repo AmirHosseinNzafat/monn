@@ -15,6 +15,7 @@ class FeatureManager:
     def _add(self, widget):
         widget.pack(padx=6, pady=5, fill="x")
         self.app.widgets.append(widget)
+        self.app.last_widget = widget
         return widget
 
     def add_tabs(self):
@@ -25,6 +26,7 @@ class FeatureManager:
             book.add(frame, text=title)
             ttk.Label(frame, text=title).pack(padx=20, pady=20)
         self.app.widgets.append(book)
+        self.app.last_widget = book
 
     def add_listbox(self):
         box = tk.Listbox(self.app.root, height=5)
@@ -107,6 +109,7 @@ class FeatureManager:
         send_button.pack(side="right", padx=5)
         entry.bind("<Return>", lambda _event: send())
         self.app.widgets.append(win)
+        self.app.last_widget = win
 
     def generate_image(self, prompt):
         def worker():
