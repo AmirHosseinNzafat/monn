@@ -87,7 +87,7 @@ class MonnInterpreter:
             self._ensure_root()
             text = p.get("t", p.get("text", ""))
             cls = tk.Button if op == "CREATE_BUTTON" else tk.Label
-            widget = cls(self.root, text=text); widget.pack(padx=5, pady=4); self.widgets.append(widget); self.last_widget = widget
+            widget = (tk.Button(self.root, text=text, command=lambda a=p.get("action", ""): self._run_action(a)) if op == "CREATE_BUTTON" else tk.Label(self.root, text=text)); widget.pack(padx=5, pady=4); self.widgets.append(widget); self.last_widget = widget
         elif op == "CREATE_ENTRY":
             self._ensure_root(); widget=tk.Entry(self.root); widget.pack(padx=5,pady=4); self.widgets.append(widget); self.last_widget=widget
         elif op == "CREATE_TEXTBOX":
