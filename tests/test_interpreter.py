@@ -32,9 +32,16 @@ class LexerParserTests(unittest.TestCase):
         with self.assertRaises(MonnSyntaxError): Lexer().tokenize("not a monn command")
     def test_unclosed_block_raises(self):
         with self.assertRaises(MonnSyntaxError): Parser(Lexer().tokenize("......[3")).parse()
+    def test_action_button_token(self):
+        token=Lexer().tokenize("دکمه شروع => پیام:بازی آغاز شد")[0]
+        self.assertEqual(token.op,"CREATE_BUTTON")
+        self.assertEqual(token.params["action"],"پیام:بازی آغاز شد")
     def test_web_export_is_standalone(self):
         html=compile_to_html("متن سلام\nدکمه شروع")
         self.assertIn("<!doctype html>",html.lower())
         self.assertIn("سلام",html)
         self.assertIn("شروع",html)
+    def test_web_button_action_is_exported(self):
+        html=compile_to_html("دکمه شروع => پیام:آغاز")
+        self.assertIn("پیام:آغاز",html)
 if __name__=="__main__": unittest.main()
