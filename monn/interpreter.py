@@ -53,6 +53,29 @@ class MonnInterpreter:
             raise MonnRuntimeError(f"عملگر شرط ناشناخته: {op}")
         try: return self.COMPARATORS[op](left, right)
         except TypeError: return self.COMPARATORS[op](str(left), str(right))
+    def _run_action(self, action):
+        """Run a small safe set of built-in button actions."""
+        if not action:
+            return
+        kind, separator, value = action.partition(":")
+        kind, value = kind.strip(), value.strip()
+        if kind in ("پیام", "message"):
+            messagebox.showinfo("Monn", value)
+        elif kind in ("تنظیم", "set") and "=" in value:
+            name, raw = value.split("=", 1)
+            self.vars[name.strip()] = self._value(raw.strip())
+        elif kind in ("افزایش", "increase", "کاهش", "decrease") and "=" in value:
+            name, raw = value.split("=", 1)
+            delta = float(raw.strip())
+            current = float(self.vars.get(name.strip(), 0))
+            self.vars[name.strip()] = current + delta if kind in ("افزایش", "increase") else current - delta
+        elif kind in ("خروج", "quit"):
+            if self.root:
+                self.root.destroy()
+                self.root = None
+        else:
+            messagebox.showinfo("Monn", f"کنش ناشناخته: {action}")
+
     def _exec_children(self, node):
         for child in node.children: self._exec_node(child)
     def _exec_node(self, node):
