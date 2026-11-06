@@ -20,7 +20,7 @@ def compile_to_html(source, title="Monn Web App"):
     js = [
       'const root=document.getElementById("app"); const state={};',
       'function add(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text);if(cls)e.className=cls;root.appendChild(e);return e;}',
-      'function button(text){const e=add("button",text);e.addEventListener("click",()=>{const out=document.getElementById("result");out.textContent="کلیک شد: "+text;});return e;}'
+      'function button(text,action){const e=add("button",text);e.addEventListener("click",()=>{const out=document.getElementById("result");if(!action){out.textContent="انتخاب شد: "+text;return;}const [kind,...rest]=action.split(":");const value=rest.join(":");if(kind==="پیام"||kind==="message"){out.textContent=value;}else if((kind==="تنظیم"||kind==="set")&&value.includes("=")){const [k,v]=value.split("=");state[k.trim()]=v.trim();out.textContent=k.trim()+" = "+v.trim();}else if(["افزایش","increase","کاهش","decrease"].includes(kind)&&value.includes("=")){const [k,v]=value.split("=");const d=Number(v);state[k.trim()]=(Number(state[k.trim()])||0)+(kind==="افزایش"||kind==="increase"?d:-d);out.textContent=k.trim()+" = "+state[k.trim()];}else{out.textContent="کنش ناشناخته: "+action;}});return e;}'
     ]
     def emit(nodes):
         for n in nodes:
@@ -31,7 +31,7 @@ def compile_to_html(source, title="Monn Web App"):
                 js.append('add("pre",JSON.stringify(state,null,2));')
             elif op=="CREATE_WINDOW": pass
             elif op=="CREATE_BUTTON":
-                js.append("button("+json.dumps(p.get("t",p.get("text","")),ensure_ascii=False)+");")
+                js.append("button("+json.dumps(p.get("t",p.get("text","")),ensure_ascii=False)+","+json.dumps(p.get("action",""),ensure_ascii=False)+");")
             elif op=="CREATE_LABEL":
                 js.append('add("p",'+json.dumps(p.get("t",p.get("text","")),ensure_ascii=False)+');')
             elif op=="CREATE_ENTRY":
