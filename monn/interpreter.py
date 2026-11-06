@@ -161,7 +161,7 @@ class MonnInterpreter:
         elif op == "WINDOW_TOPMOST": self._ensure_root(); self.root.attributes("-topmost",True)
         elif op == "SLEEP":
             if self.root: self.root.after(max(0,min(p["s"],30))*1000,lambda:None)
-        elif op == "SHOW_MESSAGE": self._ensure_root(); messagebox.showinfo("Monn","پیام Monn")
+        elif op == "SHOW_MESSAGE": self._ensure_root(); messagebox.showinfo("Monn", p.get("text", "پیام Monn"))
         elif op == "CLEAR_ALL":
             for widget in self.widgets:
                 try: widget.destroy()
