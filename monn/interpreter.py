@@ -118,6 +118,9 @@ class MonnInterpreter:
         elif op == "OPEN_3D":
             self._ensure_root()
             self.features.open_3d(params.get("path"))
+        elif op == "CREATE_3D":
+            self._ensure_root()
+            self.features.create_3d_model(params["shape"])
         elif op == "ASK_TEXT":
             self._ensure_root()
             self.vars["input"] = self.features.ask_text(params["prompt"])
