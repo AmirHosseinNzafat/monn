@@ -21,7 +21,7 @@ COMMANDS = {
     # Flow control
     "......[": ("LOOP_START", {}), "......]": ("BLOCK_END", {}),
     "......[{n}": ("LOOP_COUNT", {"n": int}),
-    "????": ("IF_START", {"left": str, "op": str, "right": str}),
+    "????": ("IF_START", {}),
     "???? {left} {op} {right}": ("IF_START", {"left": str, "op": str, "right": str}),
     "?!?!": ("ELSE", {}), "?????": ("IF_END", {}),
     # Variables / output
