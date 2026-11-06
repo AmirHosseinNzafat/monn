@@ -78,6 +78,14 @@ COMMANDS = {
     "خروج": ("QUIT", {}), "کوچک‌کردن پنجره": ("WINDOW_MINIMIZE", {}),
     "بزرگ‌کردن پنجره": ("WINDOW_MAXIMIZE", {}), "بستن پنجره": ("WINDOW_CLOSE", {}),
     "مکث {s}": ("SLEEP", {"s": int}),
+    "پنجره شناور {n}": ("FLOATING_CENTERED", {"n": str}),
+    "کمینه کردن پنجره": ("WINDOW_MINIMIZE", {}), "بیشینه کردن پنجره": ("WINDOW_MAXIMIZE", {}),
+    "پنهان کردن پنجره": ("WINDOW_HIDE", {}), "نمایش پنجره": ("WINDOW_SHOW", {}),
+    "همیشه روی صفحه": ("WINDOW_TOPMOST", {}),
+    "منو": ("CREATE_MENU", {}), "پاک کردن ابزارها": ("CLEAR_ALL", {}),
+    "سبک قاب {r}": ("SET_RELIEF", {"r": str}), "نشانگر {c}": ("SET_CURSOR", {"c": str}),
+    "تغییر اندازه {v}": ("SET_RESIZABLE", {"v": str}),
+    "پیام {text}": ("SHOW_MESSAGE", {"text": str}),
 }
 def get_command_patterns():
     return list(COMMANDS)
