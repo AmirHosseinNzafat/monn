@@ -157,6 +157,30 @@ class GameEngineTests(unittest.TestCase):
         project["scenes"][0]["choices"][0]["effects"][1]["id"] = "unknown"
         with self.assertRaises(GameValidationError):
             GameProject(project)
+    def test_rejects_unsafe_scene_media_url(self):
+        project = sample_project()
+        project["scenes"][0]["image"] = "javascript:alert(1)"
+        with self.assertRaises(GameValidationError):
+            GameProject(project)
+
+    def test_rejects_unknown_character_reference(self):
+        project = sample_project()
+        project["characters"] = [{"id": "guard", "name": "نگهبان"}]
+        project["scenes"][0]["dialogue"] = [
+            {"character": "missing", "text": "سلام"}
+        ]
+        with self.assertRaises(GameValidationError):
+            GameProject(project)
+
+    def test_item_set_zero_removes_item(self):
+        project = sample_project()
+        project["scenes"][0]["choices"][0]["effects"] = [
+            {"type": "item", "name": "key", "action": "set", "count": 0}
+        ]
+        engine = GameEngine(project)
+        engine.choose("locked")
+        self.assertNotIn("key", engine.state["inventory"])
+
 
     def test_project_load_from_json(self):
         with tempfile.TemporaryDirectory() as folder:
