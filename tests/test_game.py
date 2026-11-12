@@ -191,11 +191,17 @@ class GameEngineTests(unittest.TestCase):
         html = compile_game_to_html(sample_project())
         match = re.search(r"<script>(.*?)</script>", html, re.S)
         self.assertIsNotNone(match)
-        result = subprocess.run(
-            ["node", "--check"], input=match.group(1), text=True,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-        self.assertEqual(result.returncode, 0, result.stderr)
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".js", encoding="utf-8", delete=False) as handle:
+            handle.write(match.group(1))
+            script_path = handle.name
+        try:
+            result = subprocess.run(
+                ["node", "--check", script_path], text=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+        finally:
+            os.unlink(script_path)
 
 
 if __name__ == "__main__":
