@@ -592,7 +592,7 @@ class GameEngine:
     def صحنه(self):
         return self.scene
 
-    def انتخاب‌های_در_دسترس(self):
+    def انتخاب_های_در_دسترس(self):
         return self.available_choices()
 
     def انتخاب(self, selection):
