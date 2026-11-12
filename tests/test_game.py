@@ -209,6 +209,17 @@ class GameEngineTests(unittest.TestCase):
         self.assertEqual(game.وضعیت()["quests"]["فرار"], "active")
         self.assertIn("داستان فارسی", ساخت_بازی_وب(project))
 
+    def test_fully_persian_example_project(self):
+        repo_root = os.path.dirname(os.path.dirname(__file__))
+        path = os.path.join(repo_root, "examples", "story_persian.mongame.json")
+        project = load_project(path)
+        game = GameEngine(project)
+        game.انتخاب("برداشتن_نقشه")
+        state = game.وضعیت()
+        self.assertEqual(state["inventory"]["نقشه"], 1)
+        self.assertEqual(state["stats"]["سکه"], 5)
+        self.assertEqual(state["quests"]["پیدا_کردن_نقشه"], "completed")
+
 
     def test_project_load_from_json(self):
         with tempfile.TemporaryDirectory() as folder:
