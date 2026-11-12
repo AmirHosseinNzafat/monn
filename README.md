@@ -1,4 +1,4 @@
-# MonnLang 1.1 — زبان فارسی‌پذیر برای ساخت برنامه و وب
+# MonnLang 1.2 — زبان فارسی‌پذیر و موتور بازی داستانی
 
 Monn یک زبان برنامه‌نویسی ساده و قابل گسترش است؛ برای کسانی که می‌خواهند بدون درگیرشدن با جزئیات Python، HTML و JavaScript رابط کاربری، ابزار، نمونهٔ اولیهٔ بازی و روایت تعاملی بسازند. فایل‌های پروژه پسوند `.monn` دارند. دستورهای قدیمی نقطه‌ای همچنان پشتیبانی می‌شوند و در کنار آن‌ها می‌توان از واژه‌های فارسی استفاده کرد.
 
@@ -7,7 +7,65 @@ Monn یک زبان برنامه‌نویسی ساده و قابل گسترش ا�
 ## راهنمای کامل
 راهنمای مرجع فارسی، شامل نصب، دستورها، شرط‌ها، حلقه‌ها، رابط کاربری، کنش دکمه‌ها و خروجی وب: [docs/REFERENCE_FA.md](docs/REFERENCE_FA.md)
 
-راهنمای مرجع انگلیسی,شامل نصب.دستور ها.شرط ها.حلقه ها.رابط کاربر.کنش دکمه ها و خروجی وب :  [docs/REFERENCE_EA.md](docs/REFERENCE_EA.md)
+
+## موتور بازی داستانی Monn 1.2
+
+Monn حالا یک موتور مستقل برای بازی‌های روایی و انتخاب‌محور دارد. هسته از رابط کاربری جداست و امکانات زیر را ارائه می‌کند:
+
+- صحنه‌ها و انتخاب‌های شاخه‌ای
+- شرط‌های قابل بررسی برای ویژگی‌ها، جان، پرچم، آیتم و مأموریت
+- جان، منابع، ویژگی‌ها و کوله‌پشتی
+- مأموریت‌های فعال، تکمیل‌شده و شکست‌خورده
+- دفترچه وقایع و ثبت مسیر صحنه‌ها
+- ذخیره و بارگذاری JSON با بررسی سازگاری پروژه
+- خروجی HTML5 واکنش‌گرا با ذخیره محلی مرورگر
+
+**راهنمای اختصاصی موتور بازی:** [docs/GAME_ENGINE_FA.md](docs/GAME_ENGINE_FA.md)
+
+### اجرای نمونه بازی در ترمینال
+
+```powershell
+monn examples/story_adventure.mongame.json --game
+```
+
+### ساخت بازی مرورگری
+
+```powershell
+monn examples/story_adventure.mongame.json --game --web
+```
+
+خروجی پیش‌فرض کنار فایل بازی ساخته می‌شود. برای تعیین مسیر:
+
+```powershell
+monn examples/story_adventure.mongame.json --game --web --output dist/index.html
+```
+
+### ذخیره و ادامه بازی در ترمینال
+
+```powershell
+monn examples/story_adventure.mongame.json --game --save saves/slot1.json
+monn examples/story_adventure.mongame.json --game --load saves/slot1.json
+```
+
+پروژه‌های بازی از فرمت JSON با پسوند `.mongame.json` استفاده می‌کنند. نمونه کامل: [examples/story_adventure.mongame.json](examples/story_adventure.mongame.json).
+
+### API پایتون
+
+```python
+from monn import GameEngine, load_project, compile_game_to_html
+
+project = load_project("examples/story_adventure.mongame.json")
+game = GameEngine(project)
+print(game.scene)
+print(game.available_choices())
+game.choose("take_card")
+game.save("save.json")
+
+html = compile_game_to_html(project)
+```
+
+این نسخه موتور بازی داستانی است، نه موتور سه‌بعدی یا چندنفره آنلاین. ویرایشگر بصری، سیستم دارایی و صدا، انیمیشن و سرور چندنفره در مراحل بعدی توسعه قرار می‌گیرند.
+
 ## شروع سریع
 
 ### نصب در ویندوز
