@@ -12,6 +12,7 @@ from monn.game import (
     GameValidationError, load_project,
 )
 from monn.web_game import compile_game_to_html
+from monn import موتور_بازی, پروژه_بازی, ساخت_بازی_وب
 
 
 def sample_project():
@@ -180,6 +181,33 @@ class GameEngineTests(unittest.TestCase):
         engine = GameEngine(project)
         engine.choose("locked")
         self.assertNotIn("key", engine.state["inventory"])
+
+    def test_persian_schema_and_api_aliases(self):
+        data = {
+            "اطلاعات": {"شناسه": "fa-story", "عنوان": "داستان فارسی", "صحنه_شروع": "آغاز"},
+            "بازیکن": {"جان": 20, "حداکثر_جان": 30, "ویژگی‌ها": {"سکه": 0}, "کوله‌پشتی": []},
+            "مأموریت‌ها": [{"شناسه": "فرار", "عنوان": "فرار"}],
+            "صحنه‌ها": [
+                {"شناسه": "آغاز", "عنوان": "آغاز", "روایت": "داستان شروع شد",
+                 "انتخاب‌ها": [{
+                     "شناسه": "حرکت", "متن": "رفتن به پایان", "مقصد": "پایان",
+                     "شرط‌ها": [{"نوع": "ویژگی", "نام": "سکه", "عملگر": ">=", "مقدار": 0}],
+                     "اثرها": [
+                         {"نوع": "ویژگی", "نام": "سکه", "عملیات": "افزودن", "مقدار": 2},
+                         {"نوع": "مأموریت", "شناسه": "فرار", "کنش": "شروع"}
+                     ]
+                 }]},
+                {"شناسه": "پایان", "عنوان": "پایان", "روایت": "پایان داستان", "انتخاب‌ها": []}
+            ]
+        }
+        project = پروژه_بازی(data)
+        game = موتور_بازی(project)
+        self.assertEqual(game.صحنه["title"], "آغاز")
+        self.assertEqual(len(game.انتخاب_های_در_دسترس()), 1)
+        game.انتخاب("حرکت")
+        self.assertEqual(game.وضعیت()["stats"]["سکه"], 2)
+        self.assertEqual(game.وضعیت()["quests"]["فرار"], "active")
+        self.assertIn("داستان فارسی", ساخت_بازی_وب(project))
 
 
     def test_project_load_from_json(self):
