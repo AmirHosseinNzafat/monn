@@ -172,7 +172,10 @@ class GameEngineTests(unittest.TestCase):
         self.assertIn("localStorage", html)
         self.assertIn("کوله‌پشتی", html)
         self.assertIn("در مخفی را باز کن", html)
+        self.assertIn("dialogue-line", html)
+        self.assertIn("scene-audio", html)
         self.assertIn("textContent", html)
+        self.assertIn("validSavedState", html)
         self.assertNotIn("eval(", html)
     def test_repository_example_is_valid_and_exportable(self):
         example_path = os.path.join(
