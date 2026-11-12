@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -184,6 +185,20 @@ class GameEngineTests(unittest.TestCase):
         self.assertTrue(engine.available_choices())
         html = compile_game_to_html(project)
         self.assertIn("راز ایستگاه آخر", html)
+
+    def test_cli_builds_game_html(self):
+        repo_root = os.path.dirname(os.path.dirname(__file__))
+        example_path = os.path.join(repo_root, "examples", "story_adventure.mongame.json")
+        with tempfile.TemporaryDirectory() as folder:
+            output = os.path.join(folder, "index.html")
+            result = subprocess.run(
+                [sys.executable, os.path.join(repo_root, "monn_cli.py"),
+                 example_path, "--game", "--web", "--output", output],
+                cwd=repo_root, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            with open(output, "r", encoding="utf-8") as handle:
+                self.assertIn("راز ایستگاه آخر", handle.read())
 
 
     @unittest.skipUnless(shutil.which("node"), "Node.js is not installed")
