@@ -47,7 +47,7 @@ monn examples/story_adventure.mongame.json --game --save saves/slot1.json
 monn examples/story_adventure.mongame.json --game --load saves/slot1.json
 ```
 
-پروژه‌های بازی از فرمت JSON با پسوند `.mongame.json` استفاده می‌کنند. نمونه کامل: [examples/story_adventure.mongame.json](examples/story_adventure.mongame.json).
+پروژه‌های بازی از فرمت JSON با پسوند `.mongame.json` استفاده می‌کنند. نمونه کامل انگلیسی: [story_adventure.mongame.json](examples/story_adventure.mongame.json)؛ نمونه با کلیدها و API فارسی: [story_persian.mongame.json](examples/story_persian.mongame.json).
 
 ### API پایتون
 
