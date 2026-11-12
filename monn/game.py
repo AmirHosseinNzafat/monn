@@ -57,6 +57,8 @@ class GameProject:
             raise GameValidationError("ریشه پروژه بازی باید یک شیء JSON باشد")
         self.data = copy.deepcopy(data)
         self.meta = self.data.get("meta", {})
+        if not isinstance(self.meta, dict):
+            raise GameValidationError("meta باید یک شیء باشد")
         self.title = _require_text(self.meta.get("title", "بازی Monn"), "عنوان بازی")
         self.project_id = str(self.meta.get("id") or self.title)
         self.start_scene = _require_text(self.meta.get("start_scene"), "صحنه شروع")
@@ -117,8 +119,10 @@ class GameProject:
         for scene in self.scenes.values():
             for choice in scene.get("choices", []):
                 for effect in choice.get("effects", []):
-                    if effect.get("type") == "quest" and effect.get("id") not in self.quests:
-                        raise GameValidationError("مأموریت تعریف نشده: " + str(effect.get("id")))
+                    if effect.get("type") == "quest":
+                        quest_id = effect.get("name", effect.get("id"))
+                        if quest_id not in self.quests:
+                            raise GameValidationError("مأموریت تعریف نشده: " + str(quest_id))
         canonical = json.dumps(self.data, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         self.fingerprint = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
@@ -130,9 +134,9 @@ class GameProject:
             kind = condition.get("type", "stat")
             if kind not in ("stat", "flag", "item", "health", "quest"):
                 raise GameValidationError("نوع شرط ناشناخته: " + str(kind))
+            if condition.get("op", "==") not in COMPARATORS:
+                raise GameValidationError("عملگر شرط نامعتبر است")
             if kind in ("stat", "health"):
-                if condition.get("op", "==") not in COMPARATORS:
-                    raise GameValidationError("عملگر شرط نامعتبر است")
                 _safe_number(condition.get("value"), "مقدار شرط")
             if kind in ("stat", "flag", "item", "quest"):
                 _require_text(condition.get("name", condition.get("id")), "نام شرط")
@@ -152,8 +156,13 @@ class GameProject:
                 _require_text(effect.get("name"), "نام ویژگی")
         elif kind in ("item", "flag", "quest"):
             _require_text(effect.get("name", effect.get("id")), "نام اثر")
-            if kind == "item" and effect.get("action", "add") not in ("add", "remove", "set"):
-                raise GameValidationError("عملیات آیتم نامعتبر است")
+            if kind == "item":
+                action = effect.get("action", "add")
+                if action not in ("add", "remove", "set"):
+                    raise GameValidationError("عملیات آیتم نامعتبر است")
+                count = effect.get("count", 1)
+                if isinstance(count, bool) or not isinstance(count, int) or count < (0 if action == "set" else 1) or count > MAX_ITEMS:
+                    raise GameValidationError("تعداد آیتم نامعتبر است")
             if kind == "quest" and effect.get("action") not in ("start", "complete", "fail"):
                 raise GameValidationError("عملیات مأموریت نامعتبر است")
             if kind == "flag" and not isinstance(effect.get("value", True), (bool, int, float, str)):
@@ -280,8 +289,8 @@ class GameEngine:
             name = effect.get("name", effect.get("id"))
             action = effect.get("action", "add")
             count = int(effect.get("count", 1))
-            if count < 1:
-                raise GameStateError("تعداد آیتم باید مثبت باشد")
+            if count < (0 if action == "set" else 1) or count > MAX_ITEMS:
+                raise GameStateError("تعداد آیتم نامعتبر است")
             if action == "add":
                 self.add_item(name, count)
             elif action == "remove":
@@ -380,18 +389,29 @@ class GameEngine:
             raise GameStateError("صحنه ذخیره‌شده در پروژه وجود ندارد")
         if not isinstance(state["stats"], dict) or not isinstance(state["flags"], dict):
             raise GameStateError("وضعیت ویژگی‌ها خراب است")
+        for name, value in state["stats"].items():
+            if not isinstance(name, str) or isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise GameStateError("ویژگی ذخیره‌شده نامعتبر است")
+        if any(not isinstance(name, str) for name in state["flags"]):
+            raise GameStateError("پرچم ذخیره‌شده نامعتبر است")
         if not isinstance(state["inventory"], dict) or not isinstance(state["quests"], dict):
             raise GameStateError("وضعیت کوله‌پشتی یا مأموریت‌ها خراب است")
         if not isinstance(state["journal"], list) or not isinstance(state["visited"], list):
             raise GameStateError("دفترچه یا فهرست صحنه‌ها خراب است")
         health, maximum = state["health"], state["max_health"]
-        if not isinstance(health, (int, float)) or not isinstance(maximum, (int, float)) or not 0 <= health <= maximum <= MAX_HEALTH:
+        if isinstance(health, bool) or isinstance(maximum, bool) or not isinstance(health, (int, float)) or not isinstance(maximum, (int, float)) or not 0 <= health <= maximum <= MAX_HEALTH:
             raise GameStateError("مقدار جان در فایل ذخیره نامعتبر است")
         for name, count in state["inventory"].items():
             if not isinstance(name, str) or not isinstance(count, int) or not 1 <= count <= MAX_ITEMS:
                 raise GameStateError("آیتم ذخیره‌شده نامعتبر است")
-        if not isinstance(state["ended"], bool) or not isinstance(state["turn"], int) or state["turn"] < 1:
+        if not isinstance(state["ended"], bool) or isinstance(state["turn"], bool) or not isinstance(state["turn"], int) or state["turn"] < 1:
             raise GameStateError("وضعیت پایان یا شماره نوبت نامعتبر است")
+        if any(scene_id not in self.project.scenes for scene_id in state["visited"]):
+            raise GameStateError("فهرست صحنه‌های بازدیدشده نامعتبر است")
+        if any(qid not in self.project.quests or status not in ("active", "completed", "failed") for qid, status in state["quests"].items()):
+            raise GameStateError("وضعیت مأموریت ذخیره‌شده نامعتبر است")
+        if any(not isinstance(entry, str) for entry in state["journal"]):
+            raise GameStateError("یادداشت ذخیره‌شده نامعتبر است")
 
 
 def load_project(path):
