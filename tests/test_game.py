@@ -227,6 +227,28 @@ class GameEngineTests(unittest.TestCase):
             with open(output, "r", encoding="utf-8") as handle:
                 self.assertIn("راز ایستگاه آخر", handle.read())
 
+    def test_cli_console_save_and_resume(self):
+        repo_root = os.path.dirname(os.path.dirname(__file__))
+        example_path = os.path.join(repo_root, "examples", "story_adventure.mongame.json")
+        with tempfile.TemporaryDirectory() as folder:
+            save_path = os.path.join(folder, "slot.json")
+            first = subprocess.run(
+                [sys.executable, os.path.join(repo_root, "monn_cli.py"),
+                 example_path, "--game", "--save", save_path],
+                cwd=repo_root, input="ذخیره\nخروج\n", text=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            self.assertEqual(first.returncode, 0, first.stderr)
+            self.assertTrue(os.path.isfile(save_path))
+            resumed = subprocess.run(
+                [sys.executable, os.path.join(repo_root, "monn_cli.py"),
+                 example_path, "--game", "--load", save_path],
+                cwd=repo_root, input="خروج\n", text=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            self.assertEqual(resumed.returncode, 0, resumed.stderr)
+            self.assertIn("ذخیره بازی بارگذاری شد", resumed.stdout)
+
 
     @unittest.skipUnless(shutil.which("node"), "Node.js is not installed")
     def test_generated_browser_javascript_passes_node_syntax_check(self):
