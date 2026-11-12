@@ -53,7 +53,7 @@ def _safe_number(value, label):
 
 PERSIAN_VALUE_ALIASES = {
     "ویژگی": "stat", "جان": "health", "پرچم": "flag",
-    "آیتم": "item", "مأموریت": "quest", "ماموریت": "quest",
+    "آیتم": "item", "مأموریت": "quest", "ماموریت": "quest", "دفترچه": "journal",
     "افزودن": "add", "تنظیم": "set", "کاهش": "subtract",
     "مصرف": "remove", "شروع": "start", "تکمیل": "complete",
     "شکست": "fail", "برابر": "==", "نابرابر": "!=",
