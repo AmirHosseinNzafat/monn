@@ -81,10 +81,16 @@ class GameProject:
             choices = scene.get("choices", [])
             if not isinstance(choices, list):
                 raise GameValidationError("choices صحنه باید فهرست باشد")
+            choice_ids = set()
             for choice in choices:
                 if not isinstance(choice, dict):
                     raise GameValidationError("هر انتخاب باید یک شیء باشد")
                 _require_text(choice.get("text"), "متن انتخاب")
+                if choice.get("id") is not None:
+                    choice_id = _require_text(choice.get("id"), "شناسه انتخاب")
+                    if choice_id in choice_ids:
+                        raise GameValidationError("شناسه انتخاب تکراری است: " + choice_id)
+                    choice_ids.add(choice_id)
                 target = choice.get("target")
                 if target is not None:
                     _require_text(target, "مقصد انتخاب")
@@ -367,8 +373,13 @@ class GameEngine:
         return target
 
     def load(self, path):
-        with open(path, "r", encoding="utf-8") as handle:
-            payload = json.load(handle)
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                payload = json.load(handle)
+        except (OSError, ValueError) as exc:
+            raise GameStateError("خواندن فایل ذخیره ناموفق بود: {}".format(exc)) from exc
+        if not isinstance(payload, dict):
+            raise GameStateError("ساختار فایل ذخیره نامعتبر است")
         if payload.get("engine_version") != ENGINE_VERSION:
             raise GameStateError("نسخه فایل ذخیره با موتور فعلی سازگار نیست")
         if payload.get("project_fingerprint") != self.project.fingerprint:
@@ -392,7 +403,7 @@ class GameEngine:
         for name, value in state["stats"].items():
             if not isinstance(name, str) or isinstance(value, bool) or not isinstance(value, (int, float)):
                 raise GameStateError("ویژگی ذخیره‌شده نامعتبر است")
-        if any(not isinstance(name, str) for name in state["flags"]):
+        if any(not isinstance(name, str) or not isinstance(value, (bool, int, float, str)) for name, value in state["flags"].items()):
             raise GameStateError("پرچم ذخیره‌شده نامعتبر است")
         if not isinstance(state["inventory"], dict) or not isinstance(state["quests"], dict):
             raise GameStateError("وضعیت کوله‌پشتی یا مأموریت‌ها خراب است")
@@ -402,7 +413,7 @@ class GameEngine:
         if isinstance(health, bool) or isinstance(maximum, bool) or not isinstance(health, (int, float)) or not isinstance(maximum, (int, float)) or not 0 <= health <= maximum <= MAX_HEALTH:
             raise GameStateError("مقدار جان در فایل ذخیره نامعتبر است")
         for name, count in state["inventory"].items():
-            if not isinstance(name, str) or not isinstance(count, int) or not 1 <= count <= MAX_ITEMS:
+            if not isinstance(name, str) or isinstance(count, bool) or not isinstance(count, int) or not 1 <= count <= MAX_ITEMS:
                 raise GameStateError("آیتم ذخیره‌شده نامعتبر است")
         if not isinstance(state["ended"], bool) or isinstance(state["turn"], bool) or not isinstance(state["turn"], int) or state["turn"] < 1:
             raise GameStateError("وضعیت پایان یا شماره نوبت نامعتبر است")
