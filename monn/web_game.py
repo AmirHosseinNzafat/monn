@@ -162,12 +162,25 @@ function saveGame() {
     setMessage("بازی روی همین مرورگر ذخیره شد.");
   } catch(error) { setMessage("ذخیره‌سازی ناموفق بود: " + error.message, true); }
 }
+function validSavedState(s) {
+  if (!s || typeof s !== "object" || !sceneMap[s.current_scene]) return false;
+  if (!Number.isFinite(s.health) || !Number.isFinite(s.max_health) || s.health < 0 || s.health > s.max_health || s.max_health > 1000000) return false;
+  if (!s.stats || typeof s.stats !== "object" || !s.flags || typeof s.flags !== "object") return false;
+  if (!s.inventory || typeof s.inventory !== "object" || !s.quests || typeof s.quests !== "object") return false;
+  if (!Array.isArray(s.journal) || !s.journal.every(x => typeof x === "string")) return false;
+  if (!Array.isArray(s.visited) || !s.visited.every(id => !!sceneMap[id])) return false;
+  if (typeof s.ended !== "boolean" || !Number.isInteger(s.turn) || s.turn < 1) return false;
+  if (!Object.values(s.stats).every(v => typeof v === "number" && Number.isFinite(v))) return false;
+  if (!Object.entries(s.inventory).every(([k,v]) => typeof k === "string" && Number.isInteger(v) && v > 0 && v <= 1000000)) return false;
+  if (!Object.entries(s.quests).every(([k,v]) => !!questMap[k] && ["active","completed","failed"].includes(v))) return false;
+  return true;
+}
 function loadGame() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) throw new Error("ذخیره‌ای برای این بازی پیدا نشد.");
     const data = JSON.parse(raw);
-    if (data.version !== 1 || !data.state || !sceneMap[data.state.current_scene]) throw new Error("فایل ذخیره معتبر نیست.");
+    if (data.version !== 1 || !validSavedState(data.state)) throw new Error("فایل ذخیره معتبر نیست.");
     state = data.state; setMessage("بازی بارگذاری شد."); render();
   } catch(error) { setMessage(error.message, true); }
 }
