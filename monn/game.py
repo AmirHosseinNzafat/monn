@@ -50,13 +50,133 @@ def _safe_number(value, label):
     return value
 
 
+
+PERSIAN_VALUE_ALIASES = {
+    "ویژگی": "stat", "جان": "health", "پرچم": "flag",
+    "آیتم": "item", "مأموریت": "quest", "ماموریت": "quest",
+    "افزودن": "add", "تنظیم": "set", "کاهش": "subtract",
+    "مصرف": "remove", "شروع": "start", "تکمیل": "complete",
+    "شکست": "fail", "برابر": "==", "نابرابر": "!=",
+    "بزرگتر": ">", "کوچکتر": "<",
+    "بزرگتر_مساوی": ">=", "کوچکتر_مساوی": "<=",
+}
+
+
+def _rename_fields(value, aliases):
+    if not isinstance(value, dict):
+        return value
+    result = {}
+    for key, item in value.items():
+        english = aliases.get(key, key)
+        if english not in result or key == english:
+            result[english] = item
+    return result
+
+
+def normalize_project_data(data):
+    """Accept Persian field names alongside the canonical JSON schema."""
+    root = _rename_fields(data, {
+        "اطلاعات": "meta", "مشخصات": "meta", "بازیکن": "player",
+        "شخصیت‌ها": "characters", "شخصیت_ها": "characters",
+        "مأموریت‌ها": "quests", "ماموریت‌ها": "quests",
+        "صحنه‌ها": "scenes", "صحنه_ها": "scenes",
+    })
+    if not isinstance(root, dict):
+        return root
+    if "meta" in root:
+        root["meta"] = _rename_fields(root["meta"], {
+            "شناسه": "id", "عنوان": "title", "صحنه_شروع": "start_scene",
+            "شروع": "start_scene",
+        })
+    if "player" in root:
+        root["player"] = _rename_fields(root["player"], {
+            "جان": "health", "حداکثر_جان": "max_health",
+            "ویژگی‌ها": "stats", "ویژگی_ها": "stats",
+            "کوله_پشتی": "inventory", "کوله‌پشتی": "inventory",
+        })
+    for field in ("quests", "characters"):
+        if field in root and isinstance(root[field], list):
+            normalized = []
+            for item in root[field]:
+                aliases = {"شناسه": "id", "عنوان": "title", "نام": "name",
+                           "پرتره": "portrait"}
+                normalized.append(_rename_fields(item, aliases))
+            root[field] = normalized
+    if "scenes" in root and isinstance(root["scenes"], list):
+        scenes = []
+        for raw_scene in root["scenes"]:
+            scene = _rename_fields(raw_scene, {
+                "شناسه": "id", "عنوان": "title", "روایت": "text",
+                "متن": "text", "انتخاب‌ها": "choices", "انتخاب_ها": "choices",
+                "تصویر": "image", "موسیقی": "music", "گفتگو": "dialogue",
+                "گفت‌وگو": "dialogue",
+            })
+            if isinstance(scene, dict):
+                if isinstance(scene.get("dialogue"), list):
+                    scene["dialogue"] = [
+                        _rename_fields(line, {
+                            "شخصیت": "character", "گوینده": "speaker",
+                            "متن": "text", "پرتره": "portrait",
+                        }) for line in scene["dialogue"]
+                    ]
+                choices = scene.get("choices", [])
+                if isinstance(choices, list):
+                    normalized_choices = []
+                    for raw_choice in choices:
+                        choice = _rename_fields(raw_choice, {
+                            "شناسه": "id", "متن": "text", "مقصد": "target",
+                            "شرط‌ها": "conditions", "شرط_ها": "conditions",
+                            "اثرها": "effects", "اثر_ها": "effects",
+                        })
+                        if isinstance(choice, dict):
+                            conditions = choice.get("conditions", [])
+                            if isinstance(conditions, list):
+                                choice["conditions"] = [
+                                    _normalize_condition(item) for item in conditions
+                                ]
+                            effects = choice.get("effects", [])
+                            if isinstance(effects, list):
+                                choice["effects"] = [
+                                    _normalize_effect(item) for item in effects
+                                ]
+                        normalized_choices.append(choice)
+                    scene["choices"] = normalized_choices
+            scenes.append(scene)
+        root["scenes"] = scenes
+    return root
+
+
+def _normalize_condition(value):
+    item = _rename_fields(value, {
+        "نوع": "type", "نام": "name", "شناسه": "id",
+        "عملگر": "op", "مقدار": "value",
+    })
+    if isinstance(item, dict):
+        item["type"] = PERSIAN_VALUE_ALIASES.get(item.get("type"), item.get("type"))
+        item["op"] = PERSIAN_VALUE_ALIASES.get(item.get("op"), item.get("op"))
+    return item
+
+
+def _normalize_effect(value):
+    item = _rename_fields(value, {
+        "نوع": "type", "نام": "name", "شناسه": "id",
+        "عملیات": "op", "کنش": "action", "مقدار": "value",
+        "تعداد": "count", "متن": "text",
+    })
+    if isinstance(item, dict):
+        item["type"] = PERSIAN_VALUE_ALIASES.get(item.get("type"), item.get("type"))
+        item["op"] = PERSIAN_VALUE_ALIASES.get(item.get("op"), item.get("op"))
+        item["action"] = PERSIAN_VALUE_ALIASES.get(item.get("action"), item.get("action"))
+    return item
+
+
 class GameProject:
     """Validated, immutable-by-convention story content."""
 
     def __init__(self, data):
         if not isinstance(data, dict):
             raise GameValidationError("ریشه پروژه بازی باید یک شیء JSON باشد")
-        self.data = copy.deepcopy(data)
+        self.data = normalize_project_data(data)
         self.meta = self.data.get("meta", {})
         if not isinstance(self.meta, dict):
             raise GameValidationError("meta باید یک شیء باشد")
@@ -462,6 +582,33 @@ class GameEngine:
             raise GameStateError("وضعیت مأموریت ذخیره‌شده نامعتبر است")
         if any(not isinstance(entry, str) for entry in state["journal"]):
             raise GameStateError("یادداشت ذخیره‌شده نامعتبر است")
+
+
+    # Persian method aliases for Persian-first game scripts and tooling.
+    def وضعیت(self):
+        return self.snapshot()
+
+    @property
+    def صحنه(self):
+        return self.scene
+
+    def انتخاب‌های_در_دسترس(self):
+        return self.available_choices()
+
+    def انتخاب(self, selection):
+        return self.choose(selection)
+
+    def ذخیره(self, path):
+        return self.save(path)
+
+    def بارگذاری(self, path):
+        return self.load(path)
+
+    def شروع_دوباره(self):
+        return self.reset()
+
+    def افزودن_آیتم(self, name, count=1):
+        return self.add_item(name, count)
 
 
 def load_project(path):
