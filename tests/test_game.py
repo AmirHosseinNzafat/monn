@@ -173,6 +173,18 @@ class GameEngineTests(unittest.TestCase):
         self.assertIn("در مخفی را باز کن", html)
         self.assertIn("textContent", html)
         self.assertNotIn("eval(", html)
+    def test_repository_example_is_valid_and_exportable(self):
+        example_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "examples", "story_adventure.mongame.json"
+        )
+        project = load_project(example_path)
+        engine = GameEngine(project)
+        self.assertEqual(engine.project.title, "راز ایستگاه آخر")
+        self.assertTrue(engine.available_choices())
+        html = compile_game_to_html(project)
+        self.assertIn("راز ایستگاه آخر", html)
+
 
     @unittest.skipUnless(shutil.which("node"), "Node.js is not installed")
     def test_generated_browser_javascript_passes_node_syntax_check(self):
