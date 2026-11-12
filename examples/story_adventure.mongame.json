@@ -1,0 +1,231 @@
+{
+  "meta": {
+    "id": "monn-demo-station",
+    "title": "راز ایستگاه آخر",
+    "start_scene": "station"
+  },
+  "player": {
+    "health": 80,
+    "max_health": 100,
+    "stats": {
+      "سکه": 0,
+      "شهرت": 0
+    },
+    "inventory": []
+  },
+  "quests": [
+    {
+      "id": "find_key",
+      "title": "پیدا کردن کلید"
+    },
+    {
+      "id": "escape",
+      "title": "خروج از ایستگاه"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "station",
+      "title": "ایستگاه متروکه",
+      "text": "آخرین قطار ساعت‌ها پیش رفته است. چراغ‌های اضطراری چشمک می‌زنند و صدای کشیده‌شدن چیزی از تونل می‌آید.\nروی زمین یک کارت شناسایی افتاده است.",
+      "choices": [
+        {
+          "id": "take_card",
+          "text": "برداشتن کارت شناسایی",
+          "target": "platform",
+          "effects": [
+            {
+              "type": "item",
+              "name": "کارت شناسایی",
+              "action": "add",
+              "count": 1
+            },
+            {
+              "type": "quest",
+              "id": "find_key",
+              "action": "start"
+            },
+            {
+              "type": "journal",
+              "text": "کارت شناسایی ناشناسی پیدا کردم."
+            }
+          ]
+        },
+        {
+          "id": "run",
+          "text": "فرار به سمت خروجی",
+          "target": "exit",
+          "effects": [
+            {
+              "type": "stat",
+              "name": "شهرت",
+              "op": "add",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "platform",
+      "title": "سکوی تاریک",
+      "text": "باد سردی از تونل می‌وزد. دستگاه فروش بلیت هنوز برق دارد. در انتهای سکو دری فلزی دیده می‌شود.",
+      "choices": [
+        {
+          "id": "coin",
+          "text": "جست‌وجوی دستگاه بلیت",
+          "target": "platform_after_coin",
+          "conditions": [
+            {
+              "type": "stat",
+              "name": "سکه",
+              "op": "==",
+              "value": 0
+            }
+          ],
+          "effects": [
+            {
+              "type": "stat",
+              "name": "سکه",
+              "op": "add",
+              "value": 3
+            },
+            {
+              "type": "journal",
+              "text": "سه سکه از دستگاه پیدا کردم."
+            }
+          ]
+        },
+        {
+          "id": "door",
+          "text": "استفاده از کارت برای بازکردن در",
+          "target": "control_room",
+          "conditions": [
+            {
+              "type": "item",
+              "name": "کارت شناسایی",
+              "op": ">=",
+              "value": 1
+            }
+          ],
+          "effects": [
+            {
+              "type": "item",
+              "name": "کارت شناسایی",
+              "action": "remove",
+              "count": 1
+            },
+            {
+              "type": "quest",
+              "id": "find_key",
+              "action": "complete"
+            }
+          ]
+        },
+        {
+          "id": "tunnel",
+          "text": "رفتن به داخل تونل",
+          "target": "tunnel",
+          "effects": [
+            {
+              "type": "health",
+              "op": "subtract",
+              "value": 15
+            },
+            {
+              "type": "journal",
+              "text": "در تونل موجودی ناشناس به من حمله کرد."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "platform_after_coin",
+      "title": "سکوی متروکه",
+      "text": "دستگاه خاموش شد. سه سکه در جیب داری. در فلزی هنوز بسته است.",
+      "choices": [
+        {
+          "id": "back",
+          "text": "بازگشت به راهرو",
+          "target": "platform"
+        },
+        {
+          "id": "leave",
+          "text": "رفتن به خروجی",
+          "target": "exit"
+        }
+      ]
+    },
+    {
+      "id": "control_room",
+      "title": "اتاق کنترل",
+      "text": "مانیتورها هنوز روشن‌اند. روی صفحه نوشته شده: «پروتکل تخلیه آغاز شد». یک خروج اضطراری در پشت اتاق قرار دارد.",
+      "choices": [
+        {
+          "id": "escape",
+          "text": "فعال‌کردن خروج اضطراری",
+          "target": "exit",
+          "effects": [
+            {
+              "type": "quest",
+              "id": "escape",
+              "action": "complete"
+            },
+            {
+              "type": "stat",
+              "name": "شهرت",
+              "op": "add",
+              "value": 10
+            },
+            {
+              "type": "journal",
+              "text": "با موفقیت از ایستگاه خارج شدم."
+            }
+          ]
+        },
+        {
+          "id": "rest",
+          "text": "استراحت کوتاه",
+          "target": "control_room",
+          "effects": [
+            {
+              "type": "health",
+              "op": "add",
+              "value": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tunnel",
+      "title": "تونل تاریک",
+      "text": "چراغ‌ها خاموش می‌شوند. از دور صدای قطار می‌آید؛ اما ریل‌ها می‌لرزند.",
+      "choices": [
+        {
+          "id": "return",
+          "text": "بازگشت به سکو",
+          "target": "platform"
+        },
+        {
+          "id": "end_tunnel",
+          "text": "ادامه دادن در تاریکی",
+          "target": null,
+          "effects": [
+            {
+              "type": "journal",
+              "text": "در تاریکی ناپدید شدم."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "exit",
+      "title": "پایان فصل اول",
+      "text": "هوای سرد شب را نفس می‌کشی. پشت سرت ایستگاه در سکوت فرو می‌رود. این پایان فصل اول ماجراجویی توست.",
+      "choices": []
+    }
+  ]
+}
