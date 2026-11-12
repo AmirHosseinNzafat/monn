@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import tempfile
+from urllib.parse import urlsplit
 
 ENGINE_VERSION = 1
 MAX_HEALTH = 1000000
@@ -78,6 +79,19 @@ class GameProject:
             scene = copy.deepcopy(raw)
             scene["title"] = str(scene.get("title") or scene_id)
             scene["text"] = str(scene.get("text") or "")
+            for asset_field in ("image", "music"):
+                asset = scene.get(asset_field)
+                if asset is not None:
+                    self._validate_asset_ref(asset, asset_field)
+            dialogue = scene.get("dialogue", [])
+            if not isinstance(dialogue, list):
+                raise GameValidationError("dialogue صحنه باید فهرست باشد")
+            for line in dialogue:
+                if not isinstance(line, dict):
+                    raise GameValidationError("هر خط گفتگو باید یک شیء باشد")
+                _require_text(line.get("text"), "متن گفتگو")
+                if line.get("portrait") is not None:
+                    self._validate_asset_ref(line["portrait"], "portrait")
             choices = scene.get("choices", [])
             if not isinstance(choices, list):
                 raise GameValidationError("choices صحنه باید فهرست باشد")
@@ -111,6 +125,24 @@ class GameProject:
                 self._validate_conditions(choice.get("conditions", []))
                 for effect in choice.get("effects", []):
                     self._validate_effect(effect)
+        self.characters = {}
+        raw_characters = self.data.get("characters", [])
+        if not isinstance(raw_characters, list):
+            raise GameValidationError("characters باید فهرست باشد")
+        for character in raw_characters:
+            if not isinstance(character, dict):
+                raise GameValidationError("هر شخصیت باید یک شیء باشد")
+            character_id = _require_text(character.get("id"), "شناسه شخصیت")
+            if character_id in self.characters:
+                raise GameValidationError("شناسه شخصیت تکراری است: " + character_id)
+            if character.get("portrait") is not None:
+                self._validate_asset_ref(character["portrait"], "portrait")
+            self.characters[character_id] = copy.deepcopy(character)
+        for scene in self.scenes.values():
+            for line in scene.get("dialogue", []):
+                character_id = line.get("character")
+                if character_id is not None and self.characters and character_id not in self.characters:
+                    raise GameValidationError("شخصیت گفتگو تعریف نشده: " + str(character_id))
         self.quests = {}
         raw_quests = self.data.get("quests", [])
         if not isinstance(raw_quests, list):
@@ -131,6 +163,13 @@ class GameProject:
                             raise GameValidationError("مأموریت تعریف نشده: " + str(quest_id))
         canonical = json.dumps(self.data, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         self.fingerprint = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _validate_asset_ref(value, label):
+        value = _require_text(value, label)
+        parsed = urlsplit(value)
+        if parsed.scheme not in ("", "http", "https") or value.startswith("//"):
+            raise GameValidationError("مسیر دارایی باید نسبی یا HTTP(S) باشد")
 
     @staticmethod
     def _validate_conditions(conditions):
