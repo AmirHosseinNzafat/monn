@@ -18,6 +18,7 @@ const SAVE_KEY = "monn-game-" + __FINGERPRINT__;
 const $ = (id) => document.getElementById(id);
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const sceneMap = Object.fromEntries(GAME.scenes.map(scene => [scene.id, scene]));
+const characterMap = Object.fromEntries((GAME.characters || []).map(character => [character.id, character]));
 const questMap = Object.fromEntries((GAME.quests || []).map(q => [q.id, q]));
 function initialState() {
   const p = GAME.player || {};
@@ -94,6 +95,29 @@ function render() {
   $("game-title").textContent = GAME.meta.title || "Monn";
   $("scene-title").textContent = scene.title || scene.id;
   $("scene-text").textContent = scene.text || "";
+  const sceneImage = $("scene-image");
+  if (scene.image) { sceneImage.src = scene.image; sceneImage.alt = scene.title || scene.id; sceneImage.hidden = false; }
+  else { sceneImage.removeAttribute("src"); sceneImage.hidden = true; }
+  const audio = $("scene-audio");
+  if (scene.music) {
+    if (audio.getAttribute("src") !== scene.music) { audio.src = scene.music; audio.load(); }
+    audio.hidden = false;
+  } else { audio.pause(); audio.removeAttribute("src"); audio.hidden = true; }
+  $("dialogue").replaceChildren();
+  (scene.dialogue || []).forEach(line => {
+    const character = characterMap[line.character] || {};
+    const card = document.createElement("div"); card.className = "dialogue-line";
+    const portrait = line.portrait || character.portrait;
+    if (portrait) {
+      const avatar = document.createElement("img"); avatar.src = portrait;
+      avatar.alt = character.name || line.speaker || "شخصیت"; card.append(avatar);
+    }
+    const body = document.createElement("div");
+    const speaker = document.createElement("strong");
+    speaker.textContent = character.name || line.speaker || line.character || "راوی";
+    const words = document.createElement("p"); words.textContent = line.text;
+    body.append(speaker, words); card.append(body); $("dialogue").append(card);
+  });
   $("health").textContent = state.health + " / " + state.max_health;
   $("health-bar").style.width = (state.health / state.max_health * 100) + "%";
   $("stats").replaceChildren();
@@ -206,6 +230,10 @@ main{max-width:1180px;margin:24px auto;padding:0 18px;display:grid;grid-template
 .panel{background:linear-gradient(145deg,#142138,#0f1828);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 18px 50px #0004}
 .story{min-height:390px;display:flex;flex-direction:column}.eyebrow{color:var(--gold);font-size:12px;letter-spacing:1px}
 h2{font-size:25px;margin:12px 0 18px}.story-text{font-size:16px;line-height:2.2;white-space:pre-wrap;color:#d9e4f5;flex:1}
+.scene-image{display:block;width:100%;max-height:280px;object-fit:cover;border-radius:13px;margin:4px 0 16px;border:1px solid var(--line)}
+.dialogue-list{display:grid;gap:9px;margin-top:14px}.dialogue-line{display:flex;align-items:flex-start;gap:12px;padding:12px;background:#0c1728;border:1px solid var(--line);border-radius:12px}
+.dialogue-line img{width:48px;height:48px;object-fit:cover;border-radius:50%}.dialogue-line strong{color:var(--gold);font-size:13px}.dialogue-line p{margin:5px 0 0;line-height:1.8}
+audio{width:100%;margin:12px 0}
 .choices{display:grid;gap:10px;margin-top:24px}.choice{border:1px solid #38577e;background:linear-gradient(90deg,#203b62,#1a2b45);color:white;text-align:right;padding:14px 16px;border-radius:12px;font:inherit;cursor:pointer;transition:.16s}
 .choice:hover{border-color:var(--accent);transform:translateY(-1px);background:#294b78}
 .ending{padding:15px;border:1px solid #8b6c39;color:var(--gold);border-radius:12px;margin-top:10px}
@@ -223,7 +251,9 @@ footer{text-align:center;color:#71839d;padding:16px;font-size:12px}
 <div class="toolbar"><button id="save">ذخیره</button><button id="load">بارگذاری</button><button id="reset">شروع دوباره</button></div></header>
 <div id="message" role="status" aria-live="polite"></div>
 <main><section class="panel story"><div class="eyebrow">روایت تعاملی · MONN GAME ENGINE</div><h2 id="scene-title"></h2>
-<div id="scene-text" class="story-text"></div><div id="choices" class="choices"></div></section>
+<img id="scene-image" class="scene-image" alt="" hidden><div id="scene-text" class="story-text"></div>
+<div id="dialogue" class="dialogue-list"></div><audio id="scene-audio" controls preload="none" hidden></audio>
+<div id="choices" class="choices"></div></section>
 <aside class="side">
 <section class="panel"><h3>وضعیت بازیکن</h3><div id="health"></div><div class="health-track"><div id="health-bar" class="health-fill"></div></div><div id="stats" class="stat-list" style="margin-top:12px"></div></section>
 <section class="panel"><h3>کوله‌پشتی</h3><div id="inventory"></div></section>
