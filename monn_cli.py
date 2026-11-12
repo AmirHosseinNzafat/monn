@@ -10,6 +10,8 @@ from monn.game import GameEngine, load_project, GameError
 
 def play_game(engine, save_path=None, load_path=None):
     if load_path:
+        if save_path is None:
+            save_path = load_path
         engine.load(load_path)
         print("ذخیره بازی بارگذاری شد.")
     print("\n=== {} ===".format(engine.project.title))
@@ -71,6 +73,8 @@ def main():
         if args.game:
             project = load_project(args.file)
             if args.web:
+                if args.save_path or args.load_path:
+                    parser.error("--save و --load با --web قابل استفاده نیستند")
                 from monn.web_game import compile_game_to_html
                 target = Path(args.output) if args.output else Path(args.file).with_suffix(".html")
                 target.parent.mkdir(parents=True, exist_ok=True)
