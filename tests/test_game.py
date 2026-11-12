@@ -1,5 +1,8 @@
 import json
 import os
+import re
+import shutil
+import subprocess
 import tempfile
 import unittest
 
@@ -170,6 +173,17 @@ class GameEngineTests(unittest.TestCase):
         self.assertIn("در مخفی را باز کن", html)
         self.assertIn("textContent", html)
         self.assertNotIn("eval(", html)
+
+    @unittest.skipUnless(shutil.which("node"), "Node.js is not installed")
+    def test_generated_browser_javascript_passes_node_syntax_check(self):
+        html = compile_game_to_html(sample_project())
+        match = re.search(r"<script>(.*?)</script>", html, re.S)
+        self.assertIsNotNone(match)
+        result = subprocess.run(
+            ["node", "--check"], input=match.group(1), text=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
 
 if __name__ == "__main__":
