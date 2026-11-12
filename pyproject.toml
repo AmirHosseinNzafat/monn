@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "monn-lang"
-version = "1.1.0"
-description = "Persian-friendly language for desktop and web applications"
+version = "1.2.0"
+description = "Persian-first language and narrative game engine for desktop and web"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
