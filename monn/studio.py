@@ -6,6 +6,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from .game import GameProject
+from .game_dsl import dumps_monn, loads_monn
 from .web_game import compile_game_to_html
 
 STUDIO_DIR = Path(__file__).with_name("studio")
@@ -30,7 +31,8 @@ class StudioHandler(BaseHTTPRequestHandler):
         self.send_error(404)
 
     def do_POST(self):
-        if urlparse(self.path).path != "/api/build":
+        path = urlparse(self.path).path
+        if path not in ("/api/build", "/api/source", "/api/parse"):
             self.send_error(404)
             return
         try:
@@ -38,13 +40,22 @@ class StudioHandler(BaseHTTPRequestHandler):
             if length <= 0 or length > 48 * 1024 * 1024:
                 raise ValueError("حجم پروژه باید کمتر از ۴۸ مگابایت باشد.")
             raw = self.rfile.read(length)
-            project = json.loads(raw.decode("utf-8"))
-            validated = GameProject(project)
-            html = compile_game_to_html(validated)
-            body = html.encode("utf-8")
-            filename = self._filename(validated.title)
+            payload = json.loads(raw.decode("utf-8"))
+            if path == "/api/parse":
+                project = loads_monn(payload.get("source", ""))
+                self._json(200, project.data)
+                return
+            validated = GameProject(payload)
+            if path == "/api/source":
+                body = dumps_monn(validated).encode("utf-8")
+                filename = self._filename(validated.title).replace(".html", ".monn")
+                content_type = "text/plain; charset=utf-8"
+            else:
+                body = compile_game_to_html(validated).encode("utf-8")
+                filename = self._filename(validated.title)
+                content_type = "text/html; charset=utf-8"
             self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Type", content_type)
             self.send_header("Content-Disposition", 'attachment; filename="{}"'.format(filename))
             self.send_header("Content-Length", str(len(body)))
             self.send_header("X-Content-Type-Options", "nosniff")
