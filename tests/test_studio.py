@@ -43,6 +43,14 @@ class MonnStudioTests(unittest.TestCase):
             loaded = load_project(path)
             self.assertEqual(loaded.title, "آزمایش استودیو")
 
+    def test_native_monn_example_parses_and_compiles(self):
+        path = Path(__file__).parent.parent / "examples" / "studio_demo.monn"
+        project = load_project(path)
+        self.assertEqual(project.title, "ماجرای دروازه")
+        html = compile_game_to_html(project)
+        self.assertIn("world-canvas", html)
+        self.assertIn("menu-screen", html)
+
     def test_studio_builds_standalone_html_from_valid_project(self):
         html = compile_game_to_html(GameProject(sample()))
         self.assertIn("آزمایش استودیو", html)
