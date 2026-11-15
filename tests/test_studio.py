@@ -9,6 +9,7 @@ from pathlib import Path
 from monn.game import GameProject, load_project
 from monn.game_dsl import dumps_monn, loads_monn
 from monn.web_game import compile_game_to_html
+from monn.studio import StudioHandler
 
 
 def sample():
@@ -44,6 +45,11 @@ class MonnStudioTests(unittest.TestCase):
         html = compile_game_to_html(GameProject(sample()))
         self.assertIn("آزمایش استودیو", html)
         self.assertIn("const GAME", html)
+
+    def test_download_filename_is_safe_ascii(self):
+        name = StudioHandler._filename("بازی ما")
+        self.assertEqual(name, "monn-game.html")
+        self.assertTrue(name.isascii())
 
     def test_embedded_image_asset_is_accepted(self):
         project = sample()
