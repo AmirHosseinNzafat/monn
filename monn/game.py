@@ -349,7 +349,7 @@ class GameProject:
         if not isinstance(elements, list):
             raise GameValidationError("ui.elements باید فهرست باشد")
         for element in elements:
-            if not isinstance(element, dict) or element.get("type") not in ("text", "button", "name_input"):
+            if not isinstance(element, dict) or element.get("type") not in ("text", "button", "name_input", "location"):
                 raise GameValidationError("عنصر رابط کاربری MONN نامعتبر است")
         for field in ("menu_background", "button_sound", "background_music"):
             if ui.get(field) is not None:
