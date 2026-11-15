@@ -228,7 +228,9 @@ function renderAICharacters(scene) {
     send.addEventListener("click", async () => {
       const message = input.value.trim(), token = key.value.trim();
       if (!message) return;
-      if (!token) { answer.textContent = "برای گفتگو، کلید API را وارد کن. این کلید در فایل بازی ذخیره نمی‌شود."; return; }
+      const scripted=(character.ai.rules||[]).find(rule=>message.toLocaleLowerCase().includes(String(rule.trigger||"").toLocaleLowerCase()));
+      if (scripted) { const item=document.createElement("p");item.textContent=(character.name||"شخصیت")+": "+scripted.response;log.append(item);input.value="";return; }
+      if (!token) { answer.textContent = "برای پاسخ‌های آزاد، کلید API را وارد کن. قواعد پاسخ ثابت بدون کلید کار می‌کنند؛ کلید در فایل بازی ذخیره نمی‌شود."; return; }
       send.disabled = true; answer.textContent = "در حال دریافت پاسخ...";
       try {
         const endpoint = (character.ai.api_base || "https://api.openai.com/v1").replace(/\/$/, "") + "/chat/completions";
