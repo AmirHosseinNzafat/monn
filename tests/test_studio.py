@@ -113,7 +113,8 @@ class MonnStudioTests(unittest.TestCase):
                          "solid": True, "image": "data:image/png;base64,aGVsbG8="}],
         }
         project["ui"] = {"menu_enabled": True, "start_label": "بزن بریم",
-                         "elements": [{"type": "button", "text": "دروازه", "target": "end"}]}
+                         "elements": [{"type": "button", "text": "دروازه", "target": "end"},
+                                     {"type": "location", "text": "مکان فعلی", "x": 5, "y": 5}]}
         project["assets"] = [{"name": "wall.png", "kind": "image", "data": "data:image/png;base64,aGVsbG8=",
                               "author": "هنرمند", "source": "https://example.test/wall", "license": "CC BY 4.0"}]
         original = GameProject(project)
