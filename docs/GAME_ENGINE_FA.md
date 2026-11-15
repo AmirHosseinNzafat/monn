@@ -376,7 +376,7 @@ monn examples/story_adventure.mongame.json --game --web --output dist/index.html
 
 ## ۸. رسانه و رابط بازی
 
-هر صحنه می‌تواند image، video، music، model، button_sound، video_start و video_end داشته باشد. هر انتخاب می‌تواند صدای مستقل sound داشته باشد. عناصر رابط در ui.elements از نوع text، button یا name_input هستند و موقعیت و عرض آن‌ها به‌صورت درصدی از صفحه تعیین می‌شود.
+هر صحنه می‌تواند image، video، music، model، button_sound، video_start و video_end داشته باشد. هر انتخاب می‌تواند صدای مستقل sound داشته باشد. عناصر رابط در ui.elements از نوع text، button، name_input یا location هستند و موقعیت و عرض آن‌ها به‌صورت درصدی از صفحه تعیین می‌شود.
 
 ```json
 {
