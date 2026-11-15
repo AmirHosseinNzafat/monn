@@ -65,7 +65,7 @@ def main():
     parser.add_argument("file", nargs="?", help="مسیر فایل .monn یا پروژه JSON بازی")
     parser.add_argument("--studio", action="store_true", help="اجرای محیط گرافیکی Monn Studio")
     parser.add_argument("--web", action="store_true", help="ساخت خروجی مستقل HTML")
-    parser.add_argument("--game", action="store_true", help="اجرای فایل پروژه بازی JSON")
+    parser.add_argument("--game", action="store_true", help="اجرای پروژه بازی بومی MONN یا JSON")
     parser.add_argument("-o", "--output", help="مسیر فایل خروجی")
     parser.add_argument("--save", dest="save_path", help="مسیر فایل ذخیره بازی")
     parser.add_argument("--load", dest="load_path", help="بارگذاری فایل ذخیره بازی")
