@@ -25,4 +25,6 @@ jobs:
       - name: Unit tests
         run: python -m unittest discover -s tests -v
       - name: Export sample browser game
-        run: monn examples/story_adventure.mongame.json --game --web --output /tmp/monn-story.html
+        run: |
+          monn examples/story_adventure.mongame.json --game --web --output /tmp/monn-story.html
+          monn examples/studio_demo.monn --game --web --output /tmp/monn-studio-demo.html
