@@ -105,8 +105,21 @@ function render() {
   $("scene-title").textContent = scene.title || scene.id;
   $("scene-text").textContent = scene.text || "";
   const sceneImage = $("scene-image");
-  if (scene.image) { sceneImage.src = scene.image; sceneImage.alt = scene.title || scene.id; sceneImage.hidden = false; }
-  else { sceneImage.removeAttribute("src"); sceneImage.hidden = true; }
+  const sceneVideo = $("scene-video");
+  if (scene.video) {
+    if (sceneVideo.getAttribute("src") !== scene.video) { sceneVideo.src = scene.video; sceneVideo.load(); }
+    sceneVideo.hidden = false; sceneImage.hidden = true; sceneImage.removeAttribute("src");
+  } else {
+    sceneVideo.pause(); sceneVideo.removeAttribute("src"); sceneVideo.hidden = true;
+    if (scene.image) { sceneImage.src = scene.image; sceneImage.alt = scene.title || scene.id; sceneImage.hidden = false; }
+    else { sceneImage.removeAttribute("src"); sceneImage.hidden = true; }
+  }
+  const sceneModel = $("scene-model");
+  if (scene.model) { sceneModel.src = scene.model; sceneModel.hidden = false; }
+  else { sceneModel.removeAttribute("src"); sceneModel.hidden = true; }
+  const worldCanvas = $("world-canvas");
+  worldCanvas.hidden = !(GAME.world?.enabled || scene.world_enabled);
+  if (!worldCanvas.hidden) drawWorld();
   const audio = $("scene-audio");
   if (scene.music) {
     if (audio.getAttribute("src") !== scene.music) { audio.src = scene.music; audio.load(); }
