@@ -306,7 +306,7 @@ function drawWorld() {
     const img=sprite.image && imageFor(sprite.image);
     if (img?.complete && img.naturalWidth) {
       const fw=Number(sprite.frame_width||img.naturalWidth), fh=Number(sprite.frame_height||img.naturalHeight);
-      const frames=Math.max(1,Number(sprite.frames||1)), frame=Math.floor(worldFrame/(1000/Math.max(1,Number(sprite.fps||8))))%frames;
+      const frames=Math.max(1,Number(sprite.frames||1)), frame=Math.floor(worldFrame/(60/Math.max(1,Number(sprite.fps||8))))%frames;
       ctx.drawImage(img,frame*fw,0,fw,fh,Number(sprite.x||0),Number(sprite.y||0),Number(sprite.width||fw),Number(sprite.height||fh));
     } else {
       ctx.fillStyle=sprite.color||"#6d8bab";ctx.fillRect(sprite.x||0,sprite.y||0,sprite.width||40,sprite.height||40);
@@ -333,14 +333,14 @@ function renderWorldModels() {
     model.style.position="absolute";model.style.left=(Number(sp.x||0)/w*100)+"%";model.style.top=(Number(sp.y||0)/h*100)+"%";
     model.style.width=(Number(sp.width||100)/w*100)+"%";model.style.height=(Number(sp.height||100)/h*100)+"%";root.append(model);
   });
-  if(world.player?.model){const model=document.createElement("model-viewer");model.src=world.player.model;model.setAttribute("camera-controls","");
+  if(world.player?.model){const model=document.createElement("model-viewer");model.src=world.player.model;model.dataset.worldPlayer="true";model.setAttribute("camera-controls","");
     model.style.position="absolute";model.style.left=(worldPosition.x/w*100)+"%";model.style.top=(worldPosition.y/h*100)+"%";
     model.style.width=(Number(world.player.width||80)/w*100)+"%";model.style.height=(Number(world.player.height||100)/h*100)+"%";root.append(model);}
 }
 function drawWorldFrame() {
   const canvas=$("world-canvas"), world=GAME.world||{}, ctx=canvas.getContext("2d");
   const width=Number(world.width||800),height=Number(world.height||450);
-  ctx.clearRect(0,0,width,height);
+  ctx.clearRect(0,0,width,height);ctx.fillStyle=world.color||"#18283b";ctx.fillRect(0,0,width,height);
   if(world.background){const bg=imageFor(world.background);if(bg.complete)ctx.drawImage(bg,0,0,width,height);}
   (world.sprites||[]).forEach(sprite=>{if(sprite.model)return;const img=sprite.image&&imageFor(sprite.image);if(img?.complete&&img.naturalWidth){const fw=Number(sprite.frame_width||img.naturalWidth),fh=Number(sprite.frame_height||img.naturalHeight),frames=Math.max(1,Number(sprite.frames||1)),frame=Math.floor(worldFrame/(1000/Math.max(1,Number(sprite.fps||8))))%frames;ctx.drawImage(img,frame*fw,0,fw,fh,Number(sprite.x||0),Number(sprite.y||0),Number(sprite.width||fw),Number(sprite.height||fh));}else{ctx.fillStyle=sprite.color||"#6d8bab";ctx.fillRect(sprite.x||0,sprite.y||0,sprite.width||40,sprite.height||40);}});
   const player=world.player||{width:28,height:40,color:"#42d7e8",speed:3};
@@ -350,9 +350,12 @@ function drawWorldFrame() {
   const next={...actor,x:Math.max(0,Math.min(width-actor.width,actor.x+dx*Number(player.speed||3))),y:Math.max(0,Math.min(height-actor.height,actor.y+dy*Number(player.speed||3)))};
   const hit=(world.sprites||[]).some(sp=>sp.solid&&overlaps(next,{x:Number(sp.x||0),y:Number(sp.y||0),width:Number(sp.width||40),height:Number(sp.height||40)}));
   if(!hit){worldPosition.x=next.x;worldPosition.y=next.y;}
+  const modelPlayer=$("world-models").querySelector('[data-world-player="true"]');
+  if(modelPlayer){modelPlayer.style.left=(worldPosition.x/width*100)+"%";modelPlayer.style.top=(worldPosition.y/height*100)+"%";}
   const pimg=player.image&&imageFor(player.image);
-  if(pimg?.complete&&pimg.naturalWidth){const fw=Number(player.frame_width||pimg.naturalWidth),fh=Number(player.frame_height||pimg.naturalHeight),frames=Math.max(1,Number(player.frames||1)),frame=Math.floor(worldFrame/(1000/Math.max(1,Number(player.fps||8))))%frames;ctx.drawImage(pimg,frame*fw,0,fw,fh,worldPosition.x,worldPosition.y,actor.width,actor.height);}
+  if(pimg?.complete&&pimg.naturalWidth){const fw=Number(player.frame_width||pimg.naturalWidth),fh=Number(player.frame_height||pimg.naturalHeight),frames=Math.max(1,Number(player.frames||1)),frame=Math.floor(worldFrame/(60/Math.max(1,Number(player.fps||8))))%frames;ctx.drawImage(pimg,frame*fw,0,fw,fh,worldPosition.x,worldPosition.y,actor.width,actor.height);}
   else{ctx.fillStyle=player.color||"#42d7e8";ctx.fillRect(worldPosition.x,worldPosition.y,actor.width,actor.height);}
+  worldFrame++;
 }
 window.addEventListener("keydown",e=>{if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key))e.preventDefault();worldKeys.add(e.key)});
 window.addEventListener("keyup",e=>worldKeys.delete(e.key));
