@@ -12,7 +12,7 @@ def sample():
     return {
         "meta": {"id": "studio-test", "title": "آزمایش استودیو", "start_scene": "start"},
         "player": {"health": 100, "max_health": 100, "stats": {"سکه": 0}, "inventory": []},
-        "characters": [{"id": "guide", "name": "راهنما", "portrait": ""}],
+        "characters": [{"id": "guide", "name": "راهنما"}],
         "scenes": [
             {"id": "start", "title": "آغاز", "text": "سلام", "choices": [
                 {"id": "go", "text": "ادامه", "target": "end", "conditions": [], "effects": []}
