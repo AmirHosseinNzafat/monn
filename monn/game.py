@@ -199,7 +199,7 @@ class GameProject:
             scene = copy.deepcopy(raw)
             scene["title"] = str(scene.get("title") or scene_id)
             scene["text"] = str(scene.get("text") or "")
-            for asset_field in ("image", "music"):
+            for asset_field in ("image", "music", "video", "button_sound"):
                 asset = scene.get(asset_field)
                 if asset is not None:
                     self._validate_asset_ref(asset, asset_field)
@@ -210,8 +210,9 @@ class GameProject:
                 if not isinstance(line, dict):
                     raise GameValidationError("هر خط گفتگو باید یک شیء باشد")
                 _require_text(line.get("text"), "متن گفتگو")
-                if line.get("portrait") is not None:
-                    self._validate_asset_ref(line["portrait"], "portrait")
+                for media_field in ("portrait", "video", "voice"):
+                    if line.get(media_field) is not None:
+                        self._validate_asset_ref(line[media_field], media_field)
             choices = scene.get("choices", [])
             if not isinstance(choices, list):
                 raise GameValidationError("choices صحنه باید فهرست باشد")
@@ -255,14 +256,49 @@ class GameProject:
             character_id = _require_text(character.get("id"), "شناسه شخصیت")
             if character_id in self.characters:
                 raise GameValidationError("شناسه شخصیت تکراری است: " + character_id)
-            if character.get("portrait") is not None:
-                self._validate_asset_ref(character["portrait"], "portrait")
+            for media_field in ("portrait", "video", "voice", "model"):
+                if character.get(media_field) is not None:
+                    self._validate_asset_ref(character[media_field], media_field)
+            expressions = character.get("expressions", {})
+            if not isinstance(expressions, dict):
+                raise GameValidationError("expressions شخصیت باید شیء باشد")
+            for expression, media in expressions.items():
+                self._validate_asset_ref(media, "expression:" + str(expression))
             self.characters[character_id] = copy.deepcopy(character)
         for scene in self.scenes.values():
             for line in scene.get("dialogue", []):
                 character_id = line.get("character")
                 if character_id is not None and self.characters and character_id not in self.characters:
                     raise GameValidationError("شخصیت گفتگو تعریف نشده: " + str(character_id))
+        world = self.data.get("world", {})
+        if not isinstance(world, dict):
+            raise GameValidationError("world باید یک شیء باشد")
+        sprites = world.get("sprites", [])
+        if not isinstance(sprites, list):
+            raise GameValidationError("world.sprites باید فهرست باشد")
+        sprite_ids = set()
+        for sprite in sprites:
+            if not isinstance(sprite, dict):
+                raise GameValidationError("هر شیء نقشه باید یک شیء باشد")
+            sprite_id = _require_text(sprite.get("id"), "شناسه شیء نقشه")
+            if sprite_id in sprite_ids:
+                raise GameValidationError("شناسه شیء نقشه تکراری است: " + sprite_id)
+            sprite_ids.add(sprite_id)
+            for field in ("image", "model"):
+                if sprite.get(field) is not None:
+                    self._validate_asset_ref(sprite[field], field)
+            for field in ("x", "y", "width", "height", "speed"):
+                if field in sprite:
+                    _safe_number(sprite[field], "مختصات/اندازه شیء نقشه")
+        for field in ("background", "tileset"):
+            if world.get(field) is not None:
+                self._validate_asset_ref(world[field], field)
+        ui = self.data.get("ui", {})
+        if not isinstance(ui, dict):
+            raise GameValidationError("ui باید یک شیء باشد")
+        for field in ("menu_background", "button_sound", "background_music"):
+            if ui.get(field) is not None:
+                self._validate_asset_ref(ui[field], field)
         self.quests = {}
         raw_quests = self.data.get("quests", [])
         if not isinstance(raw_quests, list):
@@ -288,11 +324,14 @@ class GameProject:
     def _validate_asset_ref(value, label):
         value = _require_text(value, label)
         parsed = urlsplit(value)
-        data_asset = value.startswith(("data:image/png;base64,", "data:image/jpeg;base64,",
-                                      "data:image/webp;base64,", "data:image/gif;base64,",
-                                      "data:image/svg+xml;base64,", "data:audio/mpeg;base64,",
-                                      "data:audio/ogg;base64,", "data:audio/wav;base64,",
-                                      "data:audio/mp4;base64,"))
+        data_asset = value.startswith((
+            "data:image/png;base64,", "data:image/jpeg;base64,", "data:image/webp;base64,",
+            "data:image/gif;base64,", "data:image/svg+xml;base64,", "data:audio/mpeg;base64,",
+            "data:audio/ogg;base64,", "data:audio/wav;base64,", "data:audio/mp4;base64,",
+            "data:video/mp4;base64,", "data:video/webm;base64,", "data:video/ogg;base64,",
+            "data:model/gltf-binary;base64,", "data:model/gltf+json;base64,",
+            "data:application/octet-stream;base64,"
+        ))
         if (parsed.scheme not in ("", "http", "https") and not data_asset) or value.startswith("//"):
             raise GameValidationError("دارایی باید مسیر نسبی، HTTP(S) یا داده تصویری/صوتی مجاز باشد")
 
