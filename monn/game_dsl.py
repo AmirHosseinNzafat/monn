@@ -90,6 +90,8 @@ def dumps_monn(project):
                       "model":"مدل","video_start":"شروع_کلیپ","video_end":"پایان_کلیپ"}.get(key)
             if mapped:
                 lines.append("  {} = {}".format(mapped, _q(value)))
+        if "expressions" in character and not character["expressions"]:
+            lines.append("  حالت‌ها = {}")
         for name, media in character.get("expressions", {}).items():
             lines.append("  حالت {} = {}".format(_q(name), _q(media)))
         ai = character.get("ai")
@@ -99,6 +101,8 @@ def dumps_monn(project):
                 mapped = {"system_prompt":"دستور","model":"مدل_هوش","api_base":"نشانی_API"}.get(key)
                 if mapped:
                     lines.append("  {} = {}".format(mapped, _q(value)))
+            if "rules" in ai and not ai["rules"]:
+                lines.append("  قواعد_پاسخ = []")
             for rule in ai.get("rules", []):
                 lines.append("  قانون_پاسخ {} => {}".format(_q(rule.get("trigger", "")), _q(rule.get("response", ""))))
             ai_extra = {k:v for k,v in ai.items() if k not in {"enabled","system_prompt","model","api_base","rules"}}
@@ -158,11 +162,15 @@ def dumps_monn(project):
             if key in world:
                 lines.append("  {} = {}".format(mapped, _q(world[key])))
         player2d = world.get("player", {})
+        if "player" in world and not player2d:
+            lines.append("  بازیکن_جهان = {}")
         if player2d:
             lines.append("  بازیکن_جهان {")
             for key, value in player2d.items():
                 lines.append("    {} = {}".format(key, _q(value)))
             lines.append("  }")
+        if "sprites" in world and not world["sprites"]:
+            lines.append("  اشیاء = []")
         for sprite in world.get("sprites", []):
             lines.append("  شیء {} {{".format(_q(sprite["id"])))
             for key, value in sprite.items():
@@ -181,6 +189,8 @@ def dumps_monn(project):
         for key, value in ui.items():
             if key in mapping:
                 lines.append("  {} = {}".format(mapping[key], _q(value)))
+        if "elements" in ui and not ui["elements"]:
+            lines.append("  عناصر_رابط = []")
         for element in ui.get("elements", []):
             lines.append("  عنصر_رابط = {}".format(_q(element)))
         lines.append(_extras(ui, set(mapping) | {"elements"}).rstrip())
@@ -304,6 +314,15 @@ def loads_monn(source):
             ui = data.setdefault("ui", {})
             stack.append(("ui", ui))
             continue
+        if line.startswith("بازیکن_جهان =") and kind == "world":
+            obj["player"] = _value(line.split("=", 1)[1])
+            continue
+        if line.startswith("اشیاء =") and kind == "world":
+            obj["sprites"] = _value(line.split("=", 1)[1])
+            continue
+        if line.startswith("عناصر_رابط =") and kind == "ui":
+            obj["elements"] = _value(line.split("=", 1)[1])
+            continue
         if line.startswith("بازیکن_جهان {") and kind == "world":
             player = obj.setdefault("player", {})
             stack.append(("world_player", player))
@@ -335,6 +354,12 @@ def loads_monn(source):
             continue
         if kind == "scene" and line.startswith("دیالوگ ="):
             obj.setdefault("dialogue", []).append(_value(line.split("=", 1)[1]))
+            continue
+        if kind == "character" and line.startswith("حالت‌ها ="):
+            obj["expressions"] = _value(line.split("=", 1)[1])
+            continue
+        if kind == "character" and line.startswith("قواعد_پاسخ ="):
+            obj.setdefault("ai", {})["rules"] = _value(line.split("=", 1)[1])
             continue
         if kind == "character" and line.startswith("حالت "):
             left, raw_value = line.split("=", 1)
