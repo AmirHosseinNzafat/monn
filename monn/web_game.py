@@ -91,11 +91,18 @@ function applyEffect(e) {
     state.journal.push(e.text);
   }
 }
+function configureVideoClip(video,start,end,loop) {
+  const from=Math.max(0,Number(start)||0),to=Math.max(0,Number(end)||0);
+  video.loop=!(to>from)&&loop!==false;
+  video.onloadedmetadata=()=>{if(from>0&&video.currentTime<from)video.currentTime=from;};
+  video.ontimeupdate=()=>{if(to>from&&video.currentTime>=to){if(loop!==false){video.currentTime=from;video.play().catch(()=>{});}else video.pause();}};
+}
 function render() {
   const menu = $("menu-screen");
   if (!gameStarted) {
     menu.hidden = false; $("game-main").hidden = true;
     $("menu-title").textContent = GAME.ui?.menu_title || GAME.meta.title || "Monn";
+    if(GAME.ui?.menu_background)menu.style.backgroundImage="linear-gradient(#080e1dcc,#080e1dcc),url("+JSON.stringify(GAME.ui.menu_background)+")";
     $("menu-start").textContent = GAME.ui?.start_label || "شروع بازی";
     return;
   }
@@ -109,6 +116,7 @@ function render() {
   if (scene.video) {
     if (sceneVideo.getAttribute("src") !== scene.video) { sceneVideo.src = scene.video; sceneVideo.load(); }
     sceneVideo.hidden = false; sceneImage.hidden = true; sceneImage.removeAttribute("src");
+    configureVideoClip(sceneVideo,scene.video_start,scene.video_end,scene.video_loop);
   } else {
     sceneVideo.pause(); sceneVideo.removeAttribute("src"); sceneVideo.hidden = true;
     if (scene.image) { sceneImage.src = scene.image; sceneImage.alt = scene.title || scene.id; sceneImage.hidden = false; }
@@ -134,6 +142,7 @@ function render() {
     if (expressionVideo) {
       const avatar = document.createElement("video"); avatar.src = expressionVideo;
       avatar.autoplay = true; avatar.loop = true; avatar.muted = true; avatar.playsInline = true;
+      configureVideoClip(avatar,line.video_start??character.video_start,line.video_end??character.video_end,true);
       avatar.className = "character-video"; card.append(avatar);
     } else if (portrait) {
       const avatar = document.createElement("img"); avatar.src = portrait;
@@ -149,7 +158,8 @@ function render() {
     speaker.textContent = character.name || line.speaker || line.character || "راوی";
     const words = document.createElement("p"); words.textContent = line.text;
     body.append(speaker, words);
-    if (line.voice) { const voice = document.createElement("audio"); voice.controls = true; voice.src = line.voice; body.append(voice); }
+    const voiceSrc=line.voice||character.voice;
+    if (voiceSrc) { const voice = document.createElement("audio"); voice.controls = true; voice.src = voiceSrc; body.append(voice); }
     card.append(body); $("dialogue").append(card);
   });
   renderAICharacters(scene);
@@ -192,7 +202,8 @@ function render() {
   if (state.ended) {
     const end = document.createElement("div"); end.className = "ending";
     end.textContent = state.health === 0 ? "ماجراجویی به پایان رسید؛ جان بازیکن تمام شد." : "پایان ماجراجویی";
-    $("choices").append(end);
+    const menuButton=document.createElement("button");menuButton.className="choice";menuButton.textContent="بازگشت به منو";menuButton.addEventListener("click",()=>{gameStarted=false;state=initialState();render()});
+    $("choices").append(end,menuButton);
   } else if (!choices.length) {
     const end = document.createElement("div"); end.className = "ending";
     end.textContent = "در این صحنه انتخاب دیگری وجود ندارد.";
@@ -224,7 +235,7 @@ function renderCustomUI() {
   });
 }
 function playSound(src) {
-  if (!src) return;
+  if (!src || $("mute-game")?.checked) return;
   try { const audio = new Audio(src); audio.volume = 0.65; audio.play().catch(() => {}); } catch (_) {}
 }
 function renderAICharacters(scene) {
