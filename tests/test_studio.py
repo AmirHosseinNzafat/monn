@@ -56,6 +56,38 @@ class MonnStudioTests(unittest.TestCase):
         project["scenes"][0]["image"] = "data:image/png;base64,aGVsbG8="
         GameProject(project)
 
+    def test_video_ai_2d_and_3d_project_schema(self):
+        project = sample()
+        project["characters"][0].update({
+            "video": "data:video/mp4;base64,aGVsbG8=",
+            "expressions": {"happy": "data:video/mp4;base64,aGVsbG8="},
+            "model": "data:model/gltf-binary;base64,aGVsbG8=",
+            "ai": {"enabled": True, "rules": [{"trigger": "سلام", "response": "درود"}]},
+        })
+        project["scenes"][0]["video"] = "data:video/mp4;base64,aGVsbG8="
+        project["scenes"][0]["model"] = "data:model/gltf-binary;base64,aGVsbG8="
+        project["world"] = {
+            "enabled": True, "width": 800, "height": 450,
+            "sprites": [{"id": "wall", "x": 20, "y": 30, "width": 80, "height": 80,
+                         "solid": True, "model": "data:model/gltf-binary;base64,aGVsbG8="}],
+            "player": {"x": 10, "y": 10, "image": "data:image/png;base64,aGVsbG8="},
+        }
+        project["ui"] = {"menu_enabled": True, "elements": [{"type": "name_input", "text": "نام"}]}
+        GameProject(project)
+
+    def test_compiled_browser_runtime_javascript_syntax_when_node_is_available(self):
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("Node.js is not installed")
+        html = compile_game_to_html(GameProject(sample()))
+        scripts = re.findall(r"<script>(.*?)</script>", html, re.S)
+        self.assertTrue(scripts)
+        with tempfile.TemporaryDirectory() as folder:
+            script = Path(folder) / "runtime.js"
+            script.write_text(scripts[-1], encoding="utf-8")
+            result = subprocess.run([node, "--check", str(script)], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_studio_javascript_syntax_when_node_is_available(self):
         node = shutil.which("node")
         if not node:
