@@ -74,6 +74,8 @@ class MonnStudioTests(unittest.TestCase):
         self.assertIn("renderLogicEditor()", match.group(1))
         self.assertNotIn("prompt(", match.group(1))
         self.assertIn("function syncLogicEditorDraft()", html)
+        self.assertIn("function addExpressionFromAsset()", html)
+        self.assertIn("charExpressionAsset", html)
         self.assertIn("$('eo'+i)?.value", html)
 
     def test_compiled_runtime_contains_interactive_media_ai_and_2d_features(self):
