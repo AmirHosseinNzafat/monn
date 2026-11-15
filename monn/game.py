@@ -275,6 +275,11 @@ class GameProject:
             ai = character.get("ai", {})
             if "api_key" in ai or "token" in ai:
                 raise GameValidationError("کلید محرمانهٔ API را داخل فایل بازی ذخیره نکن؛ بازیکن هنگام اجرا آن را وارد کند")
+            api_base = ai.get("api_base")
+            if api_base:
+                parsed_api = urlsplit(str(api_base))
+                if parsed_api.scheme not in ("http", "https") or not parsed_api.netloc:
+                    raise GameValidationError("نشانی API شخصیت باید HTTP یا HTTPS معتبر باشد")
             rules = ai.get("rules", [])
             if not isinstance(rules, list):
                 raise GameValidationError("قواعد پاسخ AI باید فهرست باشند")
