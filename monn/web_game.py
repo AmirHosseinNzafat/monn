@@ -104,6 +104,7 @@ function render() {
     $("menu-title").textContent = GAME.ui?.menu_title || GAME.meta.title || "Monn";
     if(GAME.ui?.menu_background)menu.style.backgroundImage="linear-gradient(#080e1dcc,#080e1dcc),url("+JSON.stringify(GAME.ui.menu_background)+")";
     $("menu-start").textContent = GAME.ui?.start_label || "شروع بازی";
+    $("menu-settings").textContent = GAME.ui?.settings_label || "تنظیمات";
     return;
   }
   menu.hidden = true; $("game-main").hidden = false;
@@ -132,6 +133,7 @@ function render() {
   const audio = $("scene-audio");
   if (scene.music) {
     if (audio.getAttribute("src") !== scene.music) { audio.src = scene.music; audio.load(); }
+    audio.volume=Number($("volume-game")?.value??0.65);
     audio.hidden = false;
   } else { audio.pause(); audio.removeAttribute("src"); audio.hidden = true; }
   $("dialogue").replaceChildren();
@@ -227,6 +229,7 @@ function showCredits() {
 }
 function hideCredits() { $("credits-panel").hidden=true; }
 function hideGameSettings() { $("settings-panel").hidden = true; }
+function setGameVolume(value) { const volume=Math.max(0,Math.min(1,Number(value)||0));$("scene-audio").volume=volume;$("ui-audio").volume=volume; }
 function applyUIVisibility() {
   const ui=GAME.ui||{};
   $("health-panel").hidden=ui.show_health===false;
@@ -245,7 +248,7 @@ function renderCustomUI() {
 }
 function playSound(src) {
   if (!src || $("mute-game")?.checked) return;
-  try { const audio = new Audio(src); audio.volume = 0.65; audio.play().catch(() => {}); } catch (_) {}
+  try { const audio = new Audio(src); audio.volume = Number($("volume-game")?.value??0.65); audio.play().catch(() => {}); } catch (_) {}
 }
 function renderAICharacters(scene) {
   (scene.dialogue || []).forEach(line => {
@@ -444,7 +447,7 @@ audio{width:100%;margin:12px 0}
 footer{text-align:center;color:#71839d;padding:16px;font-size:12px}.menu-screen,.settings-panel{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:linear-gradient(140deg,#080e1d,#172a45);background-size:cover;padding:20px}.menu-card{width:min(560px,100%);padding:36px;background:#0e1a2deF;border:1px solid #38577e;border-radius:20px;display:grid;gap:14px;text-align:center;box-shadow:0 25px 90px #0009}.menu-card h1{font-size:32px}.credit-row{text-align:right;border:1px solid var(--line);padding:10px;border-radius:9px;margin:8px 0}.credit-row p{font-size:12px;color:var(--muted)}.credit-row a{color:#7dddea}.settings-panel{z-index:31}.custom-ui{position:relative;min-height:0}.custom-ui .custom-label{padding:8px;background:#101b2dcc;border-radius:8px}
 @media(max-width:780px){main{grid-template-columns:1fr;margin:14px auto}.story{min-height:320px}header{padding:18px}h2{font-size:21px}}
 </style></head><body>
-<div id="menu-screen" class="menu-screen" hidden><div class="menu-card"><h1 id="menu-title"></h1><button class="choice" id="menu-start">شروع بازی</button><button class="choice" id="menu-settings">تنظیمات</button></div></div><div id="credits-panel" class="settings-panel" hidden><div class="menu-card"><h2>عوامل و مجوزها</h2><div id="credits-list"></div><button id="credits-close">بازگشت</button></div></div><div id="settings-panel" class="settings-panel" hidden><div class="menu-card"><h2>تنظیمات بازی</h2><label><input id="mute-game" type="checkbox"> بی‌صدا</label><button id="settings-close">بازگشت</button></div></div><header><div><h1 id="game-title">""" + page_title + """</h1><small id="turn"></small></div>
+<div id="menu-screen" class="menu-screen" hidden><div class="menu-card"><h1 id="menu-title"></h1><button class="choice" id="menu-start">شروع بازی</button><button class="choice" id="menu-settings">تنظیمات</button></div></div><div id="credits-panel" class="settings-panel" hidden><div class="menu-card"><h2>عوامل و مجوزها</h2><div id="credits-list"></div><button id="credits-close">بازگشت</button></div></div><div id="settings-panel" class="settings-panel" hidden><div class="menu-card"><h2>تنظیمات بازی</h2><label><input id="mute-game" type="checkbox"> بی‌صدا</label><label>بلندی صدا <input id="volume-game" type="range" min="0" max="1" step="0.05" value="0.65" oninput="setGameVolume(this.value)"></label><button id="settings-close">بازگشت</button></div></div><header><div><h1 id="game-title">""" + page_title + """</h1><small id="turn"></small></div>
 <div class="toolbar"><button id="credits-open">منابع و مجوزها</button><button id="save">ذخیره</button><button id="load">بارگذاری</button><button id="reset">شروع دوباره</button></div></header>
 <audio id="ui-audio" preload="none"></audio><div id="message" role="status" aria-live="polite"></div>
 <main id="game-main"><section class="panel story"><div class="eyebrow">روایت تعاملی · MONN GAME ENGINE</div><h2 id="scene-title"></h2>
