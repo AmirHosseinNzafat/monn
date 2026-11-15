@@ -248,7 +248,7 @@ function renderAICharacters(scene) {
   });
 }
 const worldImages = new Map();
-const worldPosition = {x:40,y:40};
+const worldPosition = {x:Number(GAME.world?.player?.x||40),y:Number(GAME.world?.player?.y||40)};
 const worldKeys = new Set();
 let worldFrame = 0;
 function imageFor(src) {
@@ -294,9 +294,16 @@ function drawWorldFrame() {
   ctx.clearRect(0,0,width,height);
   if(world.background){const bg=imageFor(world.background);if(bg.complete)ctx.drawImage(bg,0,0,width,height);}
   (world.sprites||[]).forEach(sprite=>{const img=sprite.image&&imageFor(sprite.image);if(img?.complete&&img.naturalWidth){const fw=Number(sprite.frame_width||img.naturalWidth),fh=Number(sprite.frame_height||img.naturalHeight),frames=Math.max(1,Number(sprite.frames||1)),frame=Math.floor(worldFrame/(1000/Math.max(1,Number(sprite.fps||8))))%frames;ctx.drawImage(img,frame*fw,0,fw,fh,Number(sprite.x||0),Number(sprite.y||0),Number(sprite.width||fw),Number(sprite.height||fh));}else{ctx.fillStyle=sprite.color||"#6d8bab";ctx.fillRect(sprite.x||0,sprite.y||0,sprite.width||40,sprite.height||40);}});
-  const player=world.player||{width:28,height:40,color:"#42d7e8"},pimg=player.image&&imageFor(player.image);
-  if(pimg?.complete&&pimg.naturalWidth)ctx.drawImage(pimg,worldPosition.x,worldPosition.y,Number(player.width||28),Number(player.height||40));
-  else{ctx.fillStyle=player.color||"#42d7e8";ctx.fillRect(worldPosition.x,worldPosition.y,Number(player.width||28),Number(player.height||40));}
+  const player=world.player||{width:28,height:40,color:"#42d7e8",speed:3};
+  const actor={x:worldPosition.x,y:worldPosition.y,width:Number(player.width||28),height:Number(player.height||40)};
+  const dx=(worldKeys.has("ArrowRight")||worldKeys.has("d")?1:0)-(worldKeys.has("ArrowLeft")||worldKeys.has("a")?1:0);
+  const dy=(worldKeys.has("ArrowDown")||worldKeys.has("s")?1:0)-(worldKeys.has("ArrowUp")||worldKeys.has("w")?1:0);
+  const next={...actor,x:Math.max(0,Math.min(width-actor.width,actor.x+dx*Number(player.speed||3))),y:Math.max(0,Math.min(height-actor.height,actor.y+dy*Number(player.speed||3)))};
+  const hit=(world.sprites||[]).some(sp=>sp.solid&&overlaps(next,{x:Number(sp.x||0),y:Number(sp.y||0),width:Number(sp.width||40),height:Number(sp.height||40)}));
+  if(!hit){worldPosition.x=next.x;worldPosition.y=next.y;}
+  const pimg=player.image&&imageFor(player.image);
+  if(pimg?.complete&&pimg.naturalWidth)ctx.drawImage(pimg,worldPosition.x,worldPosition.y,actor.width,actor.height);
+  else{ctx.fillStyle=player.color||"#42d7e8";ctx.fillRect(worldPosition.x,worldPosition.y,actor.width,actor.height);}
 }
 window.addEventListener("keydown",e=>{if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key))e.preventDefault();worldKeys.add(e.key)});
 window.addEventListener("keyup",e=>worldKeys.delete(e.key));
