@@ -31,6 +31,8 @@ class MonnStudioTests(unittest.TestCase):
         original = GameProject(sample())
         source = dumps_monn(original)
         self.assertIn('بازی "آزمایش استودیو"', source)
+        self.assertIn('صحنه "start"', source)
+        self.assertNotIn("پروژه =", source)
         restored = loads_monn(source)
         self.assertEqual(restored.data, original.data)
 
@@ -74,6 +76,41 @@ class MonnStudioTests(unittest.TestCase):
         }
         project["ui"] = {"menu_enabled": True, "elements": [{"type": "name_input", "text": "نام"}]}
         GameProject(project)
+
+    def test_native_monn_round_trip_preserves_advanced_game_features(self):
+        project = sample()
+        project["meta"].update({"author": "سازنده", "license": "CC BY 4.0", "ending_scene": "end"})
+        project["characters"][0].update({
+            "video": "data:video/mp4;base64,aGVsbG8=",
+            "expressions": {"happy": "data:video/mp4;base64,aGVsbG8="},
+            "ai": {"enabled": True, "model": "example-model", "system_prompt": "نقش نگهبان",
+                   "api_base": "https://example.test/v1",
+                   "rules": [{"trigger": "سلام", "response": "درود"}]},
+        })
+        project["scenes"][0]["dialogue"] = [
+            {"character": "guide", "text": "سلام", "expression": "happy",
+             "video": "data:video/mp4;base64,aGVsbG8=", "voice": "data:audio/ogg;base64,aGVsbG8="}
+        ]
+        project["scenes"][0]["choices"][0]["conditions"] = [
+            {"type": "stat", "name": "سکه", "op": ">=", "value": 2}
+        ]
+        project["scenes"][0]["choices"][0]["effects"] = [
+            {"type": "stat", "name": "سکه", "op": "add", "value": 2},
+            {"type": "journal", "text": "کلید را پیدا کردم."}
+        ]
+        project["world"] = {
+            "enabled": True, "width": 800, "height": 450,
+            "player": {"x": 10, "y": 20, "width": 28, "height": 40, "frames": 4},
+            "sprites": [{"id": "wall", "x": 20, "y": 30, "width": 80, "height": 80,
+                         "solid": True, "image": "data:image/png;base64,aGVsbG8="}],
+        }
+        project["ui"] = {"menu_enabled": True, "start_label": "بزن بریم",
+                         "elements": [{"type": "button", "text": "دروازه", "target": "end"}]}
+        project["assets"] = [{"name": "wall.png", "kind": "image", "data": "data:image/png;base64,aGVsbG8=",
+                              "author": "هنرمند", "source": "https://example.test/wall", "license": "CC BY 4.0"}]
+        original = GameProject(project)
+        restored = loads_monn(dumps_monn(original))
+        self.assertEqual(restored.data, original.data)
 
     def test_compiled_browser_runtime_javascript_syntax_when_node_is_available(self):
         node = shutil.which("node")
