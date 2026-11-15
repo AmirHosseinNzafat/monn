@@ -385,7 +385,7 @@ class GameProject:
             "data:audio/ogg;base64,", "data:audio/wav;base64,", "data:audio/mp4;base64,",
             "data:video/mp4;base64,", "data:video/webm;base64,", "data:video/ogg;base64,",
             "data:model/gltf-binary;base64,", "data:model/gltf+json;base64,",
-            "data:application/octet-stream;base64,"
+            "data:application/json;base64,", "data:application/octet-stream;base64,"
         ))
         if (parsed.scheme not in ("", "http", "https") and not data_asset) or value.startswith("//"):
             raise GameValidationError("دارایی باید مسیر نسبی، HTTP(S) یا دادهٔ تصویری، صوتی، ویدیویی یا مدل مجاز باشد")
