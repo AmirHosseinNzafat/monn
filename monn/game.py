@@ -288,8 +288,13 @@ class GameProject:
     def _validate_asset_ref(value, label):
         value = _require_text(value, label)
         parsed = urlsplit(value)
-        if parsed.scheme not in ("", "http", "https") or value.startswith("//"):
-            raise GameValidationError("مسیر دارایی باید نسبی یا HTTP(S) باشد")
+        data_asset = value.startswith(("data:image/png;base64,", "data:image/jpeg;base64,",
+                                      "data:image/webp;base64,", "data:image/gif;base64,",
+                                      "data:image/svg+xml;base64,", "data:audio/mpeg;base64,",
+                                      "data:audio/ogg;base64,", "data:audio/wav;base64,",
+                                      "data:audio/mp4;base64,"))
+        if (parsed.scheme not in ("", "http", "https") and not data_asset) or value.startswith("//"):
+            raise GameValidationError("دارایی باید مسیر نسبی، HTTP(S) یا داده تصویری/صوتی مجاز باشد")
 
     @staticmethod
     def _validate_conditions(conditions):
@@ -612,6 +617,11 @@ class GameEngine:
 
 
 def load_project(path):
-    """Load a UTF-8 JSON game project from disk."""
-    with open(path, "r", encoding="utf-8") as handle:
+    """Load a UTF-8 JSON or native .monn game project from disk."""
+    from pathlib import Path
+    file_path = Path(path)
+    if file_path.suffix.lower() == ".monn":
+        from .game_dsl import load_monn
+        return load_monn(file_path)
+    with open(file_path, "r", encoding="utf-8") as handle:
         return GameProject(json.load(handle))
