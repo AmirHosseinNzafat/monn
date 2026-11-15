@@ -307,9 +307,8 @@ def loads_monn(source):
                 meta_map={"پدیدآورنده":"author","مجوز":"license","پایان":"ending_scene","صحنه_منو":"menu_scene"}
                 data["meta"][meta_map.get(key,key)] = value
             elif kind == "player":
-                if key == "جان": obj["health"]=value
-                elif key == "حداکثر_جان": obj["max_health"]=value
-                else: obj[key]=value
+                mapping={"جان":"health","حداکثر_جان":"max_health","ویژگی‌ها":"stats","کوله_پشتی":"inventory"}
+                obj[mapping.get(key,key)]=value
             elif kind == "character":
                 mapping={"نام":"name","تصویر":"portrait","ویدیو":"video","صدا":"voice","مدل":"model",
                          "شروع_کلیپ":"video_start","پایان_کلیپ":"video_end","دستور":"system_prompt",
