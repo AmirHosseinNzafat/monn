@@ -8,7 +8,7 @@ from .web_game import compile_game_to_html
 پروژه_بازی = GameProject
 بارگذاری_بازی = load_project
 ساخت_بازی_وب = compile_game_to_html
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 __all__ = ["MonnInterpreter", "MonnError", "MonnRuntimeError", "MonnSyntaxError", "GameEngine", "GameProject", "GameError", "GameStateError", "GameValidationError", "load_project", "run_code", "run_file", "compile_web", "compile_game_to_html", "موتور_بازی", "پروژه_بازی", "بارگذاری_بازی", "ساخت_بازی_وب"]
 def run_code(code: str):
     """Parse and execute Monn source code."""
