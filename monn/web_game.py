@@ -349,7 +349,7 @@ function drawWorldFrame() {
   const hit=(world.sprites||[]).some(sp=>sp.solid&&overlaps(next,{x:Number(sp.x||0),y:Number(sp.y||0),width:Number(sp.width||40),height:Number(sp.height||40)}));
   if(!hit){worldPosition.x=next.x;worldPosition.y=next.y;}
   const pimg=player.image&&imageFor(player.image);
-  if(pimg?.complete&&pimg.naturalWidth)ctx.drawImage(pimg,worldPosition.x,worldPosition.y,actor.width,actor.height);
+  if(pimg?.complete&&pimg.naturalWidth){const fw=Number(player.frame_width||pimg.naturalWidth),fh=Number(player.frame_height||pimg.naturalHeight),frames=Math.max(1,Number(player.frames||1)),frame=Math.floor(worldFrame/(1000/Math.max(1,Number(player.fps||8))))%frames;ctx.drawImage(pimg,frame*fw,0,fw,fh,worldPosition.x,worldPosition.y,actor.width,actor.height);}
   else{ctx.fillStyle=player.color||"#42d7e8";ctx.fillRect(worldPosition.x,worldPosition.y,actor.width,actor.height);}
 }
 window.addEventListener("keydown",e=>{if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key))e.preventDefault();worldKeys.add(e.key)});
