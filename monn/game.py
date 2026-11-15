@@ -295,8 +295,10 @@ class GameProject:
         for field in ("background", "tileset"):
             if world.get(field) is not None:
                 self._validate_asset_ref(world[field], field)
-        if isinstance(world.get("player"), dict) and world["player"].get("image") is not None:
-            self._validate_asset_ref(world["player"]["image"], "world player image")
+        if isinstance(world.get("player"), dict):
+            for field in ("image", "model"):
+                if world["player"].get(field) is not None:
+                    self._validate_asset_ref(world["player"][field], "world player " + field)
         ui = self.data.get("ui", {})
         if not isinstance(ui, dict):
             raise GameValidationError("ui باید یک شیء باشد")
