@@ -69,7 +69,7 @@ class MonnStudioTests(unittest.TestCase):
     def test_studio_choice_logic_uses_visual_editor(self):
         html_path = Path(__file__).parent.parent / "monn" / "studio" / "index.html"
         html = html_path.read_text(encoding="utf-8")
-        match = re.search(r"function editLogic\\(i\\)\\{([^}]+)\\}", html)
+        match = re.search(r"function editLogic\(i\)\{([^}]+)\}", html)
         self.assertIsNotNone(match)
         self.assertIn("renderLogicEditor()", match.group(1))
         self.assertNotIn("prompt(", match.group(1))
