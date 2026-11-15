@@ -242,6 +242,7 @@ function renderCustomUI() {
     let node;
     if(el.type==="button") { node=document.createElement("button");node.className="choice";node.textContent=el.text||"دکمه";node.addEventListener("click",()=>{playSound(GAME.ui?.button_sound);if(el.target&&sceneMap[el.target]){state.current_scene=el.target;render();}}); }
     else if(el.type==="name_input") { node=document.createElement("input");node.placeholder=el.text||"نام بازیکن";node.value=state.player_name||"";node.addEventListener("input",()=>state.player_name=node.value); }
+    else if(el.type==="location") { node=document.createElement("div");node.className="custom-label";node.textContent=sceneMap[state.current_scene]?.title||el.text||"مکان فعلی"; }
     else { node=document.createElement("div");node.className="custom-label";node.textContent=String(el.text||"").replaceAll("{player}",state.player_name||"بازیکن"); }
     node.style.position="absolute";node.style.left=(Number(el.x)||0)+"%";node.style.top=(Number(el.y)||0)+"%";node.style.width=(Number(el.width)||30)+"%";root.append(node);
   });
