@@ -323,7 +323,7 @@ function drawWorld() {
   if(pimg?.complete&&pimg.naturalWidth)ctx.drawImage(pimg,worldPosition.x,worldPosition.y,actor.width,actor.height);
   else {ctx.fillStyle=player.color||"#4bd7df";ctx.fillRect(worldPosition.x,worldPosition.y,actor.width,actor.height);}
   worldFrame++;
-  if (!worldLoopStarted) { worldLoopStarted=true; const loop=()=>{ if(!$("world-canvas").hidden)drawWorldFrame(); requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
+  if (!worldLoopStarted) { worldLoopStarted=true; const loop=()=>{ if($("world-viewport").hidden){worldLoopStarted=false;return;}drawWorldFrame();requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
 }
 function renderWorldModels() {
   const root=$("world-models"),world=GAME.world||{},w=Number(world.width||800),h=Number(world.height||450);
