@@ -236,7 +236,7 @@ def loads_monn(source):
             data.setdefault("characters", []).append(obj); stack.append(("character", obj)); continue
         if line.startswith("صحنه "):
             sid, title, rest = _quoted_pair(line[len("صحنه "):].split("{",1)[0].strip())
-            obj = {"id": sid, "title": title, "text": "", "choices": []}
+            obj = {"id": sid, "title": title, "choices": []}
             data["scenes"].append(obj); current_scene = obj; stack.append(("scene", obj)); continue
         if line.startswith("انتخاب "):
             prefix = line[len("انتخاب "):].split("{",1)[0].strip()
