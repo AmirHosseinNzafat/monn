@@ -189,7 +189,7 @@ def dumps_monn(project):
 
 
 def loads_monn(source):
-    """Parse native MONN declarations, while retaining support for legacy v1 files."""
+    """Parse native MONN declarations and legacy v1 source."""
     if not isinstance(source, str):
         raise GameValidationError("محتوای MONN باید متن باشد")
     legacy = re.search(r'^پروژه\s*=\s*"""\s*\n(.*?)\n"""\s*$', source, re.M | re.S)
@@ -201,157 +201,263 @@ def loads_monn(source):
 
     data = {"meta": {}, "player": {}, "scenes": []}
     stack = []
-    current_scene = None
 
     def ctx():
         return stack[-1] if stack else ("root", data)
 
-    def set_prop(obj, key, value):
-        obj[key] = value
+    def parse_condition(line):
+        match = re.match(r'شرط\s+(.+?)\s+(.+?)\s+(==|!=|>=|<=|>|<|=)\s+(.+)$', line)
+        if not match:
+            raise GameValidationError("شرط MONN نامعتبر است: " + line)
+        typ, name, op, raw_value = match.groups()
+        result = {"type": _value(typ), "op": op, "value": _value(raw_value)}
+        name_value = _value(name)
+        if name_value != "":
+            result["name"] = name_value
+        return result
 
     for raw_line in source.splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
         if line == "}":
-            if stack:
-                stack.pop()
+            if not stack:
+                raise GameValidationError("آکولاد بستهٔ اضافی در MONN")
+            stack.pop()
             continue
+
+        kind, obj = ctx()
         if line.startswith("بازی "):
-            data["meta"]["title"] = _value(line[5:]); continue
-        if line.startswith("شناسه ") and ctx()[0] == "root":
-            data["meta"]["id"] = _value(line[6:]); continue
-        if line.startswith("شروع ") and ctx()[0] == "root":
-            data["meta"]["start_scene"] = _value(line[5:]); continue
-        if line.startswith("مأموریت "):
-            prefix = line[len("مأموریت "):].split("{",1)[0].strip()
-            qid, title, rest = _quoted_pair(prefix)
+            data["meta"]["title"] = _value(line[5:])
+            continue
+        if line.startswith("شناسه ") and kind == "root":
+            data["meta"]["id"] = _value(line[6:])
+            continue
+        if line.startswith("شروع ") and kind == "root":
+            data["meta"]["start_scene"] = _value(line[5:])
+            continue
+        if line.startswith("شخصیت‌ها ="):
+            data["characters"] = _value(line.split("=", 1)[1])
+            continue
+        if line.startswith("مأموریت‌ها ="):
+            data["quests"] = _value(line.split("=", 1)[1])
+            continue
+        if line.startswith("دارایی‌ها ="):
+            data["assets"] = _value(line.split("=", 1)[1])
+            continue
+
+        if line.startswith("بازیکن {") and kind == "root":
+            stack.append(("player", data["player"]))
+            continue
+        if line.startswith("شخصیت ") and kind == "root":
+            cid = _value(line[len("شخصیت "):].split("{", 1)[0].strip())
+            character = {"id": cid}
+            data.setdefault("characters", []).append(character)
+            stack.append(("character", character))
+            continue
+        if line.startswith("مأموریت ") and kind == "root":
+            prefix = line[len("مأموریت "):].split("{", 1)[0].strip()
+            qid, title, _ = _quoted_pair(prefix)
             quest = {"id": qid, "title": title}
             data.setdefault("quests", []).append(quest)
-            if line.endswith("{"): stack.append(("quest", quest))
+            if line.endswith("{"):
+                stack.append(("quest", quest))
             continue
-        if line.startswith("شخصیت "):
-            cid = _value(line[len("شخصیت "):].split("{",1)[0].strip())
-            obj = {"id": cid}
-            data.setdefault("characters", []).append(obj); stack.append(("character", obj)); continue
-        if line.startswith("صحنه "):
-            sid, title, rest = _quoted_pair(line[len("صحنه "):].split("{",1)[0].strip())
-            obj = {"id": sid, "title": title, "choices": []}
-            data["scenes"].append(obj); current_scene = obj; stack.append(("scene", obj)); continue
-        if line.startswith("انتخاب "):
-            prefix = line[len("انتخاب "):].split("{",1)[0].strip()
+        if line.startswith("صحنه ") and kind == "root":
+            prefix = line[len("صحنه "):].split("{", 1)[0].strip()
+            sid, title, _ = _quoted_pair(prefix)
+            scene = {"id": sid, "title": title}
+            data["scenes"].append(scene)
+            stack.append(("scene", scene))
+            continue
+        if line.startswith("انتخاب ") and kind == "scene":
+            prefix = line[len("انتخاب "):].split("{", 1)[0].strip()
             match = re.match(r'(.+?)\s*->\s*(.+)$', prefix)
             if not match:
                 raise GameValidationError("ساختار انتخاب MONN نامعتبر است: " + line)
-            text_value, target = _value(match.group(1)), _value(match.group(2))
-            obj = {"id": "choice_{}".format(len(ctx()[1].get("choices",[]))+1), "text": text_value,
-                   "target": target or None, "conditions": [], "effects": []}
-            ctx()[1]["choices"].append(obj); stack.append(("choice", obj)); continue
-        if line == "بازیکن {" :
-            obj = data["player"]; stack.append(("player", obj)); continue
-        if line == "جهان {":
-            obj = data.setdefault("world", {"enabled": False, "width": 800, "height": 450, "sprites": []})
-            stack.append(("world", obj)); continue
-        if line == "رابط {":
-            obj = data.setdefault("ui", {"elements": []}); stack.append(("ui", obj)); continue
-        if line.startswith("بازیکن_جهان {"):
-            world = data.setdefault("world", {"enabled": False, "width":800,"height":450,"sprites":[]})
-            obj = world.setdefault("player", {}); stack.append(("world_player", obj)); continue
-        if line.startswith("شیء "):
-            sid = _value(line[len("شیء "):].split("{",1)[0].strip())
-            world = data.setdefault("world", {"enabled":False,"width":800,"height":450,"sprites":[]})
-            obj = {"id": sid}; world.setdefault("sprites",[]).append(obj); stack.append(("sprite",obj)); continue
-        if line.startswith("عنصر_رابط"):
-            ui = data.setdefault("ui", {"elements":[]})
-            element = _value(line.split("=",1)[1].strip())
-            ui.setdefault("elements",[]).append(element); continue
-        if line.startswith("دارایی "):
-            name, kind, rest = _quoted_pair(line[len("دارایی "):].split("{",1)[0].strip())
-            obj = {"name":name,"kind":kind}; data.setdefault("assets",[]).append(obj); stack.append(("asset",obj)); continue
+            text_value = _value(match.group(1))
+            target = _value(match.group(2))
+            choice = {"text": text_value, "target": target or None,
+                      "conditions": [], "effects": []}
+            scene_choices = obj.setdefault("choices", [])
+            choice["id"] = "choice_{}".format(len(scene_choices) + 1)
+            scene_choices.append(choice)
+            stack.append(("choice", choice))
+            continue
+        if line.startswith("جهان {") and kind == "root":
+            world = data.setdefault("world", {})
+            stack.append(("world", world))
+            continue
+        if line.startswith("رابط {") and kind == "root":
+            ui = data.setdefault("ui", {})
+            stack.append(("ui", ui))
+            continue
+        if line.startswith("بازیکن_جهان {") and kind == "world":
+            player = obj.setdefault("player", {})
+            stack.append(("world_player", player))
+            continue
+        if line.startswith("شیء ") and kind == "world":
+            sprite_id = _value(line[len("شیء "):].split("{", 1)[0].strip())
+            sprite = {"id": sprite_id}
+            obj.setdefault("sprites", []).append(sprite)
+            stack.append(("sprite", sprite))
+            continue
+        if line.startswith("دارایی ") and kind == "root":
+            prefix = line[len("دارایی "):].split("{", 1)[0].strip()
+            name, media_kind, _ = _quoted_pair(prefix)
+            asset = {"name": name, "kind": media_kind}
+            data.setdefault("assets", []).append(asset)
+            stack.append(("asset", asset))
+            continue
+        if line.startswith("عنصر_رابط") and kind == "ui":
+            element = _value(line.split("=", 1)[1].strip())
+            obj.setdefault("elements", []).append(element)
+            continue
+
         kind, obj = ctx()
-        if line.startswith("دیالوگ =") and kind == "scene":
-            obj.setdefault("dialogue",[]).append(_value(line.split("=",1)[1])); continue
-        if line.startswith("دیالوگ ") and kind == "scene":
-            character, text_value, rest = _quoted_pair(line[len("دیالوگ "):])
-            obj.setdefault("dialogue",[]).append({"character":character or None,"text":text_value}); continue
-        if line.startswith("حالت ") and kind == "character":
-            name, value, rest = _quoted_pair(line[len("حالت "):].split("=",1)[0].strip() + " " + line.split("=",1)[1].strip())
-            obj.setdefault("expressions",{})[name] = value; continue
-        if line.startswith("قانون_پاسخ ") and kind == "character":
+        if kind == "scene" and line.startswith("انتخاب‌ها ="):
+            obj["choices"] = _value(line.split("=", 1)[1])
+            continue
+        if kind == "scene" and line.startswith("گفتگوها ="):
+            obj["dialogue"] = _value(line.split("=", 1)[1])
+            continue
+        if kind == "scene" and line.startswith("دیالوگ ="):
+            obj.setdefault("dialogue", []).append(_value(line.split("=", 1)[1]))
+            continue
+        if kind == "character" and line.startswith("حالت "):
+            left, raw_value = line.split("=", 1)
+            expression = _value(left[len("حالت "):].strip())
+            obj.setdefault("expressions", {})[expression] = _value(raw_value)
+            continue
+        if kind == "character" and line.startswith("قانون_پاسخ "):
             match = re.match(r'قانون_پاسخ\s+(.+?)\s*=>\s*(.+)$', line)
+            if not match:
+                raise GameValidationError("قانون پاسخ MONN نامعتبر است: " + line)
             trigger, response = _value(match.group(1)), _value(match.group(2))
-            obj.setdefault("ai",{}).setdefault("rules",[]).append({"trigger":trigger,"response":response}); continue
-        if kind == "player" and line.startswith("ویژگی "):
-            left, raw_value = line.split("=",1)
-            name = _value(left[len("ویژگی "):].strip())
-            obj.setdefault("stats",{})[name]=_value(raw_value); continue
-        if kind == "player" and line.startswith("آیتم "):
-            left, raw_value = line.split("=",1)
-            name = _value(left[len("آیتم "):].strip())
-            obj.setdefault("inventory",[]).append({"name":name,"count":int(_value(raw_value))}); continue
-        if line.startswith("شرط ") and kind == "choice":
-            match = re.match(r'شرط\s+(.+?)\s+(.+?)\s+(==|!=|>=|<=|>|<|=)\s+(.+)$', line)
-            if not match: raise GameValidationError("شرط MONN نامعتبر است: " + line)
-            typ, name, op, value = match.groups()
-            obj["conditions"].append({"type":_value(typ),"name":_value(name),"op":op,"value":_value(value)}); continue
-        if line.startswith("اثر دفترچه ") and kind == "choice":
-            obj["effects"].append({"type":"journal","text":_value(line[len("اثر دفترچه "):])}); continue
-        if line.startswith("اثر مأموریت ") and kind == "choice":
-            match = re.match(r'اثر مأموریت\s+(.+?)\s+(start|complete|fail)
-        if "=" in line:
-            key, raw = [part.strip() for part in line.split("=",1)]
-            value = _value(raw)
-            if key == "داده_ریشه": data.update(value); continue
-            if key == "جزئیات": obj.update(value); continue
-            if kind == "root":
-                meta_map={"پدیدآورنده":"author","مجوز":"license","پایان":"ending_scene","صحنه_منو":"menu_scene"}
-                data["meta"][meta_map.get(key,key)] = value
-            elif kind == "player":
-                mapping={"جان":"health","حداکثر_جان":"max_health","ویژگی‌ها":"stats","کوله_پشتی":"inventory"}
-                obj[mapping.get(key,key)]=value
-            elif kind == "character":
-                mapping={"نام":"name","تصویر":"portrait","ویدیو":"video","صدا":"voice","مدل":"model",
-                         "شروع_کلیپ":"video_start","پایان_کلیپ":"video_end","دستور":"system_prompt",
-                         "مدل_هوش":"model","نشانی_API":"api_base","هوش_مصنوعی":"enabled"}
-                if key in ("ویژگی","حالت"): obj.setdefault("expressions",{})[value[0]]=value[1]
-                elif key in ("دستور","مدل_هوش","نشانی_API","هوش_مصنوعی"):
-                    ai=obj.setdefault("ai",{"enabled":False,"rules":[]});ai[mapping[key]]=value
-                else: obj[mapping.get(key,key)]=value
-            elif kind == "scene":
-                mapping={"روایت":"text","تصویر":"image","ویدیو":"video","شروع_کلیپ":"video_start",
-                         "پایان_کلیپ":"video_end","تکرار_کلیپ":"video_loop","موسیقی":"music",
-                         "مدل":"model","صدای_دکمه":"button_sound","جهان_فعال":"world_enabled"}
-                obj[mapping.get(key,key)]=value
-            elif kind == "choice":
-                if key == "شناسه": obj["id"]=value
-                elif key == "صدا": obj["sound"]=value
-            elif kind in ("world","world_player","sprite"):
-                mapping={"فعال":"enabled","عرض":"width","ارتفاع":"height","پس‌زمینه":"background","رنگ":"color","برخورد":"solid"}
-                obj[mapping.get(key,key)]=value
-            elif kind == "ui":
-                mapping={"منو_فعال":"menu_enabled","عنوان_منو":"menu_title","برچسب_شروع":"start_label",
-                         "برچسب_تنظیمات":"settings_label","پس‌زمینه_منو":"menu_background","موسیقی_منو":"background_music",
-                         "صدای_دکمه":"button_sound","نمایش_جان":"show_health","نمایش_کوله":"show_inventory",
-                         "نمایش_مأموریت":"show_quests"}
-                obj[mapping.get(key,key)]=value
-            elif kind == "asset":
-                mapping={"پدیدآورنده":"author","منبع":"source","مجوز":"license","یادداشت":"notes","داده":"data"}
-                obj[mapping.get(key,key)]=value
+            obj.setdefault("ai", {}).setdefault("rules", []).append(
+                {"trigger": trigger, "response": response})
             continue
         if kind == "player" and line.startswith("ویژگی "):
-            name, value, rest = _quoted_pair(line[len("ویژگی "):].split("=",1)[0].strip()+" "+line.split("=",1)[1].strip())
-            obj.setdefault("stats",{})[name]=value; continue
+            left, raw_value = line.split("=", 1)
+            name = _value(left[len("ویژگی "):].strip())
+            obj.setdefault("stats", {})[name] = _value(raw_value)
+            continue
         if kind == "player" and line.startswith("آیتم "):
-            name, value, rest = _quoted_pair(line[len("آیتم "):].split("=",1)[0].strip()+" "+line.split("=",1)[1].strip())
-            obj.setdefault("inventory",[]).append({"name":name,"count":int(value)}); continue
-        if kind == "asset" and line.startswith("داده "):
-            obj["data"]=_value(line[len("داده "):]); continue
-    if not data.get("meta",{}).get("start_scene") and data.get("scenes"):
+            left, raw_value = line.split("=", 1)
+            name = _value(left[len("آیتم "):].strip())
+            obj.setdefault("inventory", []).append(
+                {"name": name, "count": int(_value(raw_value))})
+            continue
+        if kind == "player" and line.startswith("آیتم ="):
+            obj.setdefault("inventory", []).append(_value(line.split("=", 1)[1]))
+            continue
+        if kind == "choice" and line.startswith("شرط "):
+            obj.setdefault("conditions", []).append(parse_condition(line))
+            continue
+        if kind == "choice" and line.startswith("اثر دفترچه "):
+            obj.setdefault("effects", []).append(
+                {"type": "journal", "text": _value(line[len("اثر دفترچه "):])})
+            continue
+        if kind == "choice" and line.startswith("اثر مأموریت "):
+            match = re.match(r'اثر مأموریت\s+(.+?)\s+(start|complete|fail)$', line)
+            if not match:
+                raise GameValidationError("اثر مأموریت MONN نامعتبر است: " + line)
+            obj.setdefault("effects", []).append(
+                {"type": "quest", "name": _value(match.group(1)), "action": match.group(2)})
+            continue
+        if kind == "choice" and line.startswith("اثر آیتم "):
+            match = re.match(r'اثر آیتم\s+(.+?)\s+(add|set|remove)\s+(.+)$', line)
+            if not match:
+                raise GameValidationError("اثر آیتم MONN نامعتبر است: " + line)
+            name, action, count = match.groups()
+            obj.setdefault("effects", []).append(
+                {"type": "item", "name": _value(name), "action": action,
+                 "count": int(_value(count))})
+            continue
+        if kind == "choice" and line.startswith("اثر پرچم "):
+            match = re.match(r'اثر پرچم\s+(.+?)\s*=\s*(.+)$', line)
+            if not match:
+                raise GameValidationError("اثر پرچم MONN نامعتبر است: " + line)
+            obj.setdefault("effects", []).append(
+                {"type": "flag", "name": _value(match.group(1)),
+                 "value": _value(match.group(2))})
+            continue
+        if kind == "choice" and line.startswith("اثر "):
+            match = re.match(r'اثر\s+(.+?)\s+(.+?)\s+(add|set|subtract)\s+(.+)$', line)
+            if not match:
+                raise GameValidationError("اثر MONN نامعتبر است: " + line)
+            typ, name, operation, raw_value = match.groups()
+            effect = {"type": _value(typ), "op": operation, "value": _value(raw_value)}
+            name_value = _value(name)
+            if name_value != "":
+                effect["name"] = name_value
+            obj.setdefault("effects", []).append(effect)
+            continue
+
+        if "=" not in line:
+            continue
+        key, raw = [part.strip() for part in line.split("=", 1)]
+        value = _value(raw)
+        if key == "داده_ریشه":
+            data.update(value)
+            continue
+        if key == "جزئیات":
+            obj.update(value)
+            continue
+
+        if kind == "root":
+            mapping = {"پدیدآورنده": "author", "مجوز": "license",
+                       "پایان": "ending_scene", "صحنه_منو": "menu_scene"}
+            data["meta"][mapping.get(key, key)] = value
+        elif kind == "player":
+            mapping = {"جان": "health", "حداکثر_جان": "max_health",
+                       "ویژگی‌ها": "stats", "کوله_پشتی": "inventory"}
+            obj[mapping.get(key, key)] = value
+        elif kind == "character":
+            mapping = {"نام": "name", "تصویر": "portrait", "ویدیو": "video",
+                       "صدا": "voice", "مدل": "model", "شروع_کلیپ": "video_start",
+                       "پایان_کلیپ": "video_end"}
+            if key in ("هوش_مصنوعی", "دستور", "مدل_هوش", "نشانی_API"):
+                ai = obj.setdefault("ai", {})
+                ai[{"هوش_مصنوعی": "enabled", "دستور": "system_prompt",
+                    "مدل_هوش": "model", "نشانی_API": "api_base"}[key]] = value
+            else:
+                obj[mapping.get(key, key)] = value
+        elif kind == "scene":
+            mapping = {"روایت": "text", "تصویر": "image", "ویدیو": "video",
+                       "شروع_کلیپ": "video_start", "پایان_کلیپ": "video_end",
+                       "تکرار_کلیپ": "video_loop", "موسیقی": "music",
+                       "مدل": "model", "صدای_دکمه": "button_sound",
+                       "جهان_فعال": "world_enabled"}
+            obj[mapping.get(key, key)] = value
+        elif kind == "choice":
+            mapping = {"شناسه": "id", "صدا": "sound"}
+            obj[mapping.get(key, key)] = value
+        elif kind in ("world", "world_player", "sprite"):
+            mapping = {"فعال": "enabled", "عرض": "width", "ارتفاع": "height",
+                       "پس‌زمینه": "background", "رنگ": "color", "برخورد": "solid"}
+            obj[mapping.get(key, key)] = value
+        elif kind == "ui":
+            mapping = {"منو_فعال": "menu_enabled", "عنوان_منو": "menu_title",
+                       "برچسب_شروع": "start_label", "برچسب_تنظیمات": "settings_label",
+                       "پس‌زمینه_منو": "menu_background", "موسیقی_منو": "background_music",
+                       "صدای_دکمه": "button_sound", "نمایش_جان": "show_health",
+                       "نمایش_کوله": "show_inventory", "نمایش_مأموریت": "show_quests"}
+            obj[mapping.get(key, key)] = value
+        elif kind == "asset":
+            mapping = {"پدیدآورنده": "author", "منبع": "source", "مجوز": "license",
+                       "یادداشت": "notes", "داده": "data"}
+            obj[mapping.get(key, key)] = value
+        elif kind == "quest":
+            obj[key] = value
+
+    if stack:
+        raise GameValidationError("یک یا چند بلوک MONN بسته نشده‌اند")
+    if not data.get("meta", {}).get("start_scene") and data.get("scenes"):
         data["meta"]["start_scene"] = data["scenes"][0]["id"]
-    if not data.get("meta",{}).get("title"):
+    if not data.get("meta", {}).get("title"):
         data["meta"]["title"] = "بازی MONN"
     return GameProject(data)
-
 
 def load_monn(path):
     return loads_monn(Path(path).read_text(encoding="utf-8"))
