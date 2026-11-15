@@ -107,17 +107,30 @@ function render() {
   (scene.dialogue || []).forEach(line => {
     const character = characterMap[line.character] || {};
     const card = document.createElement("div"); card.className = "dialogue-line";
+    const expressionVideo = line.video || (line.expression && character.expressions?.[line.expression]) || character.video;
     const portrait = line.portrait || character.portrait;
-    if (portrait) {
+    if (expressionVideo) {
+      const avatar = document.createElement("video"); avatar.src = expressionVideo;
+      avatar.autoplay = true; avatar.loop = true; avatar.muted = true; avatar.playsInline = true;
+      avatar.className = "character-video"; card.append(avatar);
+    } else if (portrait) {
       const avatar = document.createElement("img"); avatar.src = portrait;
       avatar.alt = character.name || line.speaker || "شخصیت"; card.append(avatar);
+    }
+    if (character.model) {
+      const model = document.createElement("model-viewer"); model.src = character.model;
+      model.setAttribute("camera-controls", ""); model.setAttribute("auto-rotate", "");
+      model.style.width = "150px"; model.style.height = "150px"; card.append(model);
     }
     const body = document.createElement("div");
     const speaker = document.createElement("strong");
     speaker.textContent = character.name || line.speaker || line.character || "راوی";
     const words = document.createElement("p"); words.textContent = line.text;
-    body.append(speaker, words); card.append(body); $("dialogue").append(card);
+    body.append(speaker, words);
+    if (line.voice) { const voice = document.createElement("audio"); voice.controls = true; voice.src = line.voice; body.append(voice); }
+    card.append(body); $("dialogue").append(card);
   });
+  renderAICharacters(scene);
   $("health").textContent = state.health + " / " + state.max_health;
   $("health-bar").style.width = (state.health / state.max_health * 100) + "%";
   $("stats").replaceChildren();
@@ -151,7 +164,7 @@ function render() {
   choices.forEach(choice => {
     const button = document.createElement("button"); button.className = "choice";
     button.textContent = choice.text;
-    button.addEventListener("click", () => choose(choice));
+    button.addEventListener("click", () => { playSound(choice.sound || scene.button_sound || GAME.ui?.button_sound); choose(choice); });
     $("choices").append(button);
   });
   if (state.ended) {
@@ -165,6 +178,84 @@ function render() {
   }
   $("turn").textContent = "نوبت " + state.turn + " · " + state.visited.length + " صحنه کشف‌شده";
 }
+function playSound(src) {
+  if (!src) return;
+  try { const audio = new Audio(src); audio.volume = 0.65; audio.play().catch(() => {}); } catch (_) {}
+}
+function renderAICharacters(scene) {
+  (scene.dialogue || []).forEach(line => {
+    const character = characterMap[line.character] || {};
+    if (!character.ai?.enabled) return;
+    const panel = document.createElement("section"); panel.className = "ai-chat";
+    const title = document.createElement("strong"); title.textContent = "گفتگو با " + (character.name || "شخصیت");
+    const log = document.createElement("div"); log.className = "ai-log";
+    const input = document.createElement("input"); input.placeholder = "پیام خود را بنویس...";
+    const key = document.createElement("input"); key.type = "password"; key.placeholder = "کلید API (فقط در این نشست)";
+    const send = document.createElement("button"); send.textContent = "ارسال";
+    const answer = document.createElement("p"); answer.setAttribute("aria-live", "polite");
+    send.addEventListener("click", async () => {
+      const message = input.value.trim(), token = key.value.trim();
+      if (!message) return;
+      if (!token) { answer.textContent = "برای گفتگو، کلید API را وارد کن. این کلید در فایل بازی ذخیره نمی‌شود."; return; }
+      send.disabled = true; answer.textContent = "در حال دریافت پاسخ...";
+      try {
+        const endpoint = (character.ai.api_base || "https://api.openai.com/v1").replace(/\/$/, "") + "/chat/completions";
+        const response = await fetch(endpoint, {method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
+          body:JSON.stringify({model:character.ai.model || "gpt-4o-mini", messages:[
+            {role:"system",content:character.ai.system_prompt || ("تو نقش "+(character.name||"یک شخصیت بازی")+" را بازی می‌کنی. فقط در چارچوب شخصیت پاسخ بده.")},
+            {role:"user",content:message}
+          ]})});
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error?.message || "خطای سرویس هوش مصنوعی");
+        const reply = data.choices?.[0]?.message?.content || "پاسخی دریافت نشد.";
+        const item = document.createElement("p"); item.textContent = "بازیکن: "+message+"\n"+(character.name||"شخصیت")+": "+reply; log.append(item); input.value=""; answer.textContent="";
+      } catch(error) { answer.textContent = "خطا: "+error.message+" (ممکن است سرویس مقصد CORS را پشتیبانی نکند.)"; }
+      finally { send.disabled = false; }
+    });
+    panel.append(title, log, input, key, send, answer); $("dialogue").append(panel);
+  });
+}
+const worldImages = new Map();
+const worldPosition = {x:40,y:40};
+const worldKeys = new Set();
+let worldFrame = 0;
+function imageFor(src) {
+  if (!worldImages.has(src)) { const img = new Image(); img.src = src; worldImages.set(src,img); }
+  return worldImages.get(src);
+}
+function overlaps(a,b) {
+  return a.x < b.x+b.width && a.x+a.width > b.x && a.y < b.y+b.height && a.y+a.height > b.y;
+}
+function drawWorld() {
+  const canvas = $("world-canvas"), world = GAME.world || {}, ctx = canvas.getContext("2d");
+  const width = Number(world.width || 800), height = Number(world.height || 450);
+  canvas.width = width; canvas.height = height;
+  ctx.fillStyle = world.color || "#18283b"; ctx.fillRect(0,0,width,height);
+  if (world.background) { const bg=imageFor(world.background); if(bg.complete)ctx.drawImage(bg,0,0,width,height); }
+  (world.sprites || []).forEach(sprite => {
+    const img=sprite.image && imageFor(sprite.image);
+    if (img?.complete && img.naturalWidth) {
+      const fw=Number(sprite.frame_width||img.naturalWidth), fh=Number(sprite.frame_height||img.naturalHeight);
+      const frames=Math.max(1,Number(sprite.frames||1)), frame=Math.floor(worldFrame/(1000/Math.max(1,Number(sprite.fps||8))))%frames;
+      ctx.drawImage(img,frame*fw,0,fw,fh,Number(sprite.x||0),Number(sprite.y||0),Number(sprite.width||fw),Number(sprite.height||fh));
+    } else {
+      ctx.fillStyle=sprite.color||"#6d8bab";ctx.fillRect(sprite.x||0,sprite.y||0,sprite.width||40,sprite.height||40);
+    }
+  });
+  const player=world.player || {x:worldPosition.x,y:worldPosition.y,width:28,height:40,color:"#4bd7df",speed:3};
+  const actor={x:worldPosition.x,y:worldPosition.y,width:Number(player.width||28),height:Number(player.height||40)};
+  const dx=(worldKeys.has("ArrowRight")||worldKeys.has("d")?1:0)-(worldKeys.has("ArrowLeft")||worldKeys.has("a")?1:0);
+  const dy=(worldKeys.has("ArrowDown")||worldKeys.has("s")?1:0)-(worldKeys.has("ArrowUp")||worldKeys.has("w")?1:0);
+  const next={...actor,x:Math.max(0,Math.min(width-actor.width,actor.x+dx*Number(player.speed||3))),y:Math.max(0,Math.min(height-actor.height,actor.y+dy*Number(player.speed||3)))};
+  const hit=(world.sprites||[]).some(s=>s.solid&&overlaps(next,{x:Number(s.x||0),y:Number(s.y||0),width:Number(s.width||40),height:Number(s.height||40)}));
+  if (!hit) { worldPosition.x=next.x;worldPosition.y=next.y; }
+  const pimg=player.image&&imageFor(player.image);
+  if(pimg?.complete&&pimg.naturalWidth)ctx.drawImage(pimg,worldPosition.x,worldPosition.y,actor.width,actor.height);
+  else {ctx.fillStyle=player.color||"#4bd7df";ctx.fillRect(worldPosition.x,worldPosition.y,actor.width,actor.height);}
+  worldFrame++; if(!$("world-canvas").hidden)requestAnimationFrame(drawWorld);
+}
+window.addEventListener("keydown",e=>{if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key))e.preventDefault();worldKeys.add(e.key)});
+window.addEventListener("keyup",e=>worldKeys.delete(e.key));
 function choose(choice) {
   const before = clone(state);
   try {
@@ -173,7 +264,10 @@ function choose(choice) {
       state.current_scene = choice.target;
       if (!state.visited.includes(choice.target)) state.visited.push(choice.target);
       state.turn += 1;
-    } else state.ended = true;
+    } else {
+      state.ended = true;
+      if (GAME.meta.ending_scene && sceneMap[GAME.meta.ending_scene]) state.current_scene = GAME.meta.ending_scene;
+    }
     setMessage("");
     render();
   } catch(error) {
@@ -232,7 +326,7 @@ main{max-width:1180px;margin:24px auto;padding:0 18px;display:grid;grid-template
 h2{font-size:25px;margin:12px 0 18px}.story-text{font-size:16px;line-height:2.2;white-space:pre-wrap;color:#d9e4f5;flex:1}
 .scene-image{display:block;width:100%;max-height:280px;object-fit:cover;border-radius:13px;margin:4px 0 16px;border:1px solid var(--line)}
 .dialogue-list{display:grid;gap:9px;margin-top:14px}.dialogue-line{display:flex;align-items:flex-start;gap:12px;padding:12px;background:#0c1728;border:1px solid var(--line);border-radius:12px}
-.dialogue-line img{width:48px;height:48px;object-fit:cover;border-radius:50%}.dialogue-line strong{color:var(--gold);font-size:13px}.dialogue-line p{margin:5px 0 0;line-height:1.8}
+.dialogue-line img,.dialogue-line video{width:112px;height:112px;object-fit:cover;border-radius:12px}.world-canvas{display:block;width:100%;max-height:70vh;object-fit:contain;background:#111;border-radius:12px;margin:12px 0}.ai-chat{display:grid;gap:8px;padding:12px;background:#111c2e;border:1px solid var(--line);border-radius:12px}.ai-chat input{width:100%;padding:9px;border-radius:8px;border:1px solid var(--line);background:#0b1424;color:var(--text)}.ai-log{max-height:180px;overflow:auto}.ai-log p{white-space:pre-wrap}.dialogue-line strong{color:var(--gold);font-size:13px}.dialogue-line p{margin:5px 0 0;line-height:1.8}
 audio{width:100%;margin:12px 0}
 .choices{display:grid;gap:10px;margin-top:24px}.choice{border:1px solid #38577e;background:linear-gradient(90deg,#203b62,#1a2b45);color:white;text-align:right;padding:14px 16px;border-radius:12px;font:inherit;cursor:pointer;transition:.16s}
 .choice:hover{border-color:var(--accent);transform:translateY(-1px);background:#294b78}
@@ -251,7 +345,7 @@ footer{text-align:center;color:#71839d;padding:16px;font-size:12px}
 <div class="toolbar"><button id="save">ذخیره</button><button id="load">بارگذاری</button><button id="reset">شروع دوباره</button></div></header>
 <div id="message" role="status" aria-live="polite"></div>
 <main><section class="panel story"><div class="eyebrow">روایت تعاملی · MONN GAME ENGINE</div><h2 id="scene-title"></h2>
-<img id="scene-image" class="scene-image" alt="" hidden><div id="scene-text" class="story-text"></div>
+<img id="scene-image" class="scene-image" alt="" hidden><video id="scene-video" class="scene-image" controls playsinline preload="metadata" hidden></video><model-viewer id="scene-model" camera-controls auto-rotate style="width:100%;height:300px" hidden></model-viewer><canvas id="world-canvas" class="world-canvas" hidden></canvas><div id="scene-text" class="story-text"></div>
 <div id="dialogue" class="dialogue-list"></div><audio id="scene-audio" controls preload="none" hidden></audio>
 <div id="choices" class="choices"></div></section>
 <aside class="side">
@@ -260,4 +354,4 @@ footer{text-align:center;color:#71839d;padding:16px;font-size:12px}
 <section class="panel"><h3>مأموریت‌ها</h3><div id="quests"></div></section>
 <section class="panel"><h3>دفترچه وقایع</h3><ul id="journal"></ul></section>
 </aside></main><footer>ساخته‌شده با موتور بازی MonnLang · ذخیره محلی روی همین مرورگر</footer>
-<script>""" + script + """</script></body></html>"""
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script><script>""" + script + """</script></body></html>"""
