@@ -272,6 +272,15 @@ class GameProject:
                     raise GameValidationError("{} شخصیت نمی‌تواند منفی باشد".format(timing))
             if "ai" in character and not isinstance(character["ai"], dict):
                 raise GameValidationError("تنظیمات AI شخصیت باید یک شیء باشد")
+            ai = character.get("ai", {})
+            if "api_key" in ai or "token" in ai:
+                raise GameValidationError("کلید محرمانهٔ API را داخل فایل بازی ذخیره نکن؛ بازیکن هنگام اجرا آن را وارد کند")
+            rules = ai.get("rules", [])
+            if not isinstance(rules, list):
+                raise GameValidationError("قواعد پاسخ AI باید فهرست باشند")
+            for rule in rules:
+                if not isinstance(rule, dict) or not str(rule.get("trigger", "")).strip() or not str(rule.get("response", "")).strip():
+                    raise GameValidationError("هر قاعده پاسخ باید عبارت و پاسخ غیرخالی داشته باشد")
             expressions = character.get("expressions", {})
             if not isinstance(expressions, dict):
                 raise GameValidationError("expressions شخصیت باید شیء باشد")
