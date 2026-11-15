@@ -1,4 +1,7 @@
 import json
+import re
+import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -46,6 +49,20 @@ class MonnStudioTests(unittest.TestCase):
         project = sample()
         project["scenes"][0]["image"] = "data:image/png;base64,aGVsbG8="
         GameProject(project)
+
+    def test_studio_javascript_syntax_when_node_is_available(self):
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("Node.js is not installed")
+        html_path = Path(__file__).parent.parent / "monn" / "studio" / "index.html"
+        html = html_path.read_text(encoding="utf-8")
+        match = re.search(r"<script>(.*?)</script>", html, re.S)
+        self.assertIsNotNone(match)
+        with tempfile.TemporaryDirectory() as folder:
+            script = Path(folder) / "studio.js"
+            script.write_text(match.group(1), encoding="utf-8")
+            result = subprocess.run([node, "--check", str(script)], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
 
 
 if __name__ == "__main__":
