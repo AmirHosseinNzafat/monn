@@ -261,23 +261,22 @@ function renderAICharacters(scene) {
     const key = document.createElement("input"); key.type = "password"; key.placeholder = "کلید API (فقط در این نشست)";
     const send = document.createElement("button"); send.textContent = "ارسال";
     const answer = document.createElement("p"); answer.setAttribute("aria-live", "polite");
+    const history=[{role:"system",content:character.ai.system_prompt || ("تو نقش "+(character.name||"یک شخصیت بازی")+" را بازی می‌کنی. فقط در چارچوب شخصیت پاسخ بده.")}];
     send.addEventListener("click", async () => {
       const message = input.value.trim(), token = key.value.trim();
       if (!message) return;
       const scripted=(character.ai.rules||[]).find(rule=>message.toLocaleLowerCase().includes(String(rule.trigger||"").toLocaleLowerCase()));
-      if (scripted) { const item=document.createElement("p");item.textContent=(character.name||"شخصیت")+": "+scripted.response;log.append(item);input.value="";return; }
+      if (scripted) { const item=document.createElement("p");item.textContent=(character.name||"شخصیت")+": "+scripted.response;log.append(item);history.push({role:"user",content:message},{role:"assistant",content:scripted.response});input.value="";return; }
       if (!token) { answer.textContent = "برای پاسخ‌های آزاد، کلید API را وارد کن. قواعد پاسخ ثابت بدون کلید کار می‌کنند؛ کلید در فایل بازی ذخیره نمی‌شود."; return; }
       send.disabled = true; answer.textContent = "در حال دریافت پاسخ...";
       try {
         const endpoint = (character.ai.api_base || "https://api.openai.com/v1").replace(/\/$/, "") + "/chat/completions";
         const response = await fetch(endpoint, {method:"POST", headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
-          body:JSON.stringify({model:character.ai.model || "gpt-4o-mini", messages:[
-            {role:"system",content:character.ai.system_prompt || ("تو نقش "+(character.name||"یک شخصیت بازی")+" را بازی می‌کنی. فقط در چارچوب شخصیت پاسخ بده.")},
-            {role:"user",content:message}
-          ]})});
+          body:JSON.stringify({model:character.ai.model || "gpt-4o-mini", messages:[...history,{role:"user",content:message}]})});
         const data = await response.json();
         if (!response.ok) throw new Error(data.error?.message || "خطای سرویس هوش مصنوعی");
         const reply = data.choices?.[0]?.message?.content || "پاسخی دریافت نشد.";
+        history.push({role:"user",content:message},{role:"assistant",content:reply});
         const item = document.createElement("p"); item.textContent = "بازیکن: "+message+"\n"+(character.name||"شخصیت")+": "+reply; log.append(item); input.value=""; answer.textContent="";
       } catch(error) { answer.textContent = "خطا: "+error.message+" (ممکن است سرویس مقصد CORS را پشتیبانی نکند.)"; }
       finally { send.disabled = false; }
