@@ -35,8 +35,8 @@ class StudioHandler(BaseHTTPRequestHandler):
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
-            if length <= 0 or length > 12 * 1024 * 1024:
-                raise ValueError("حجم پروژه باید کمتر از ۱۲ مگابایت باشد.")
+            if length <= 0 or length > 48 * 1024 * 1024:
+                raise ValueError("حجم پروژه باید کمتر از ۴۸ مگابایت باشد.")
             raw = self.rfile.read(length)
             project = json.loads(raw.decode("utf-8"))
             validated = GameProject(project)
