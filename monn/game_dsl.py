@@ -74,15 +74,15 @@ def dumps_monn(project):
             else:
                 for item in value:
                     if isinstance(item, str):
-                        lines.append("  آیتم {} = 1".format(_q(item)))
+                        lines.append("  آیتم = {}".format(_q(item)))
                     else:
                         lines.append("  آیتم {} = {}".format(_q(item.get("name", "")), _q(item.get("count", 1))))
     if "stats" in player and not player["stats"]:
         lines.append("  ویژگی‌ها = {}")
-    if "inventory" not in player:
-        lines.append("  کوله_پشتی = []")
     lines.append(_extras(player, {"health", "max_health", "stats", "inventory"}).rstrip())
     lines.extend(["}", ""])
+    if "characters" in d and not d["characters"]:
+        lines.append("شخصیت‌ها = []")
     for character in d.get("characters", []):
         lines.append("شخصیت {} {{".format(_q(character["id"])))
         for key, value in character.items():
@@ -101,8 +101,13 @@ def dumps_monn(project):
                     lines.append("  {} = {}".format(mapped, _q(value)))
             for rule in ai.get("rules", []):
                 lines.append("  قانون_پاسخ {} => {}".format(_q(rule.get("trigger", "")), _q(rule.get("response", ""))))
+            ai_extra = {k:v for k,v in ai.items() if k not in {"enabled","system_prompt","model","api_base","rules"}}
+            if ai_extra:
+                lines.append("  جزئیات_هوش = {}".format(_q(ai_extra)))
         lines.append(_extras(character, {"id","name","portrait","video","voice","model","video_start","video_end","expressions","ai"}).rstrip())
         lines.extend(["}", ""])
+    if "quests" in d and not d["quests"]:
+        lines.append("مأموریت‌ها = []")
     for quest in d.get("quests", []):
         lines.append("مأموریت {} {} {{".format(_q(quest["id"]), _q(quest.get("title", quest["id"]))))
         lines.append(_extras(quest, {"id","title"}).rstrip())
@@ -118,8 +123,12 @@ def dumps_monn(project):
                             ("world_enabled","جهان_فعال")):
             if key in scene:
                 lines.append("  {} = {}".format(mapped, _q(scene[key])))
+        if "dialogue" in scene and not scene["dialogue"]:
+            lines.append("  گفتگوها = []")
         for line in scene.get("dialogue", []):
             lines.append("  دیالوگ = {}".format(_q(line)))
+        if "choices" in scene and not scene["choices"]:
+            lines.append("  انتخاب‌ها = []")
         for choice in scene.get("choices", []):
             lines.append("  انتخاب {} -> {} {{".format(_q(choice.get("text", "")), _q(choice.get("target") or "")))
             lines.append("    شناسه = {}".format(_q(choice.get("id"))))
@@ -138,6 +147,7 @@ def dumps_monn(project):
                     lines.append("    اثر پرچم {} = {}".format(_q(e.get("name","")), _q(e.get("value",True))))
                 else:
                     lines.append("    اثر {} {} {} {}".format(_q(e["type"]), _q(e.get("name","")), e.get("op","add"), _q(e.get("value",0))))
+            lines.append(_extras(choice, {"id","text","target","sound","conditions","effects"}).rstrip())
             lines.append("  }")
         lines.append(_extras(scene, {"id","title","text","image","video","video_start","video_end","video_loop","music","model","button_sound","world_enabled","dialogue","choices"}).rstrip())
         lines.extend(["}", ""])
@@ -175,6 +185,8 @@ def dumps_monn(project):
             lines.append("  عنصر_رابط = {}".format(_q(element)))
         lines.append(_extras(ui, set(mapping) | {"elements"}).rstrip())
         lines.extend(["}", ""])
+    if "assets" in d and not d["assets"]:
+        lines.append("دارایی‌ها = []")
     for asset in d.get("assets", []):
         lines.append("دارایی {} {} {{".format(_q(asset.get("name","asset")), _q(asset.get("kind","file"))))
         for key in ("data","author","source","license","notes"):
@@ -329,6 +341,9 @@ def loads_monn(source):
             expression = _value(left[len("حالت "):].strip())
             obj.setdefault("expressions", {})[expression] = _value(raw_value)
             continue
+        if kind == "character" and line.startswith("جزئیات_هوش ="):
+            obj.setdefault("ai", {}).update(_value(line.split("=", 1)[1]))
+            continue
         if kind == "character" and line.startswith("قانون_پاسخ "):
             match = re.match(r'قانون_پاسخ\s+(.+?)\s*=>\s*(.+)$', line)
             if not match:
@@ -344,9 +359,12 @@ def loads_monn(source):
             continue
         if kind == "player" and line.startswith("آیتم "):
             left, raw_value = line.split("=", 1)
-            name = _value(left[len("آیتم "):].strip())
-            obj.setdefault("inventory", []).append(
-                {"name": name, "count": int(_value(raw_value))})
+            name_part = left[len("آیتم "):].strip()
+            if not name_part:
+                obj.setdefault("inventory", []).append(_value(raw_value))
+            else:
+                obj.setdefault("inventory", []).append(
+                    {"name": _value(name_part), "count": int(_value(raw_value))})
             continue
         if kind == "player" and line.startswith("آیتم ="):
             obj.setdefault("inventory", []).append(_value(line.split("=", 1)[1]))
