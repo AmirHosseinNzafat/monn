@@ -66,6 +66,46 @@ class MonnStudioTests(unittest.TestCase):
         project["scenes"][0]["image"] = "data:image/png;base64,aGVsbG8="
         GameProject(project)
 
+    def test_studio_choice_logic_uses_visual_editor(self):
+        html_path = Path(__file__).parent.parent / "monn" / "studio" / "index.html"
+        html = html_path.read_text(encoding="utf-8")
+        match = re.search(r"function editLogic\\(i\\)\\{([^}]+)\\}", html)
+        self.assertIsNotNone(match)
+        self.assertIn("renderLogicEditor()", match.group(1))
+        self.assertNotIn("prompt(", match.group(1))
+        self.assertIn("function syncLogicEditorDraft()", html)
+        self.assertIn("$('eo'+i)?.value", html)
+
+    def test_compiled_runtime_contains_interactive_media_ai_and_2d_features(self):
+        project = sample()
+        project["characters"][0]["ai"] = {
+            "enabled": True, "system_prompt": "در نقش نگهبان پاسخ بده.",
+            "rules": [{"trigger": "سلام", "response": "درود"}],
+        }
+        project["characters"][0]["video"] = "assets/guard.mp4"
+        project["characters"][0]["expressions"] = {"happy": "assets/happy.mp4"}
+        project["characters"][0]["model"] = "assets/guard.glb"
+        project["scenes"][0]["video"] = "assets/scene.mp4"
+        project["scenes"][0]["dialogue"] = [
+            {"character": "guide", "text": "سلام", "expression": "happy",
+             "voice": "assets/voice.ogg"}
+        ]
+        project["world"] = {
+            "enabled": True, "width": 800, "height": 450,
+            "player": {"x": 10, "y": 10, "width": 28, "height": 40, "frames": 4, "fps": 8},
+            "sprites": [{"id": "wall", "x": 100, "y": 80, "width": 40, "height": 80, "solid": True}],
+        }
+        project["ui"] = {
+            "menu_enabled": True,
+            "elements": [{"type": "name_input", "text": "نام بازیکن"},
+                         {"type": "location", "text": "مکان فعلی"}],
+        }
+        html = compile_game_to_html(GameProject(project))
+        for feature in ("renderAICharacters", "chat/completions", "drawWorldFrame",
+                        "function overlaps", "name_input", "scene-video", "model-viewer",
+                        "credits-list"):
+            self.assertIn(feature, html)
+
     def test_video_ai_2d_and_3d_project_schema(self):
         project = sample()
         project["characters"][0].update({
