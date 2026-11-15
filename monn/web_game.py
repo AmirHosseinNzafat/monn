@@ -127,7 +127,8 @@ function render() {
   else { sceneModel.removeAttribute("src"); sceneModel.hidden = true; }
   const worldCanvas = $("world-canvas");
   worldCanvas.hidden = !(GAME.world?.enabled || scene.world_enabled);
-  if (!worldCanvas.hidden) drawWorld();
+  $("world-viewport").hidden = worldCanvas.hidden;
+  if (!worldCanvas.hidden) { drawWorld(); renderWorldModels(); }
   const audio = $("scene-audio");
   if (scene.music) {
     if (audio.getAttribute("src") !== scene.music) { audio.src = scene.music; audio.load(); }
@@ -314,12 +315,24 @@ function drawWorld() {
   worldFrame++;
   if (!worldLoopStarted) { worldLoopStarted=true; const loop=()=>{ if(!$("world-canvas").hidden)drawWorldFrame(); requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
 }
+function renderWorldModels() {
+  const root=$("world-models"),world=GAME.world||{},w=Number(world.width||800),h=Number(world.height||450);
+  root.replaceChildren();
+  (world.sprites||[]).filter(sp=>sp.model).forEach(sp=>{
+    const model=document.createElement("model-viewer");model.src=sp.model;model.setAttribute("camera-controls","");
+    model.style.position="absolute";model.style.left=(Number(sp.x||0)/w*100)+"%";model.style.top=(Number(sp.y||0)/h*100)+"%";
+    model.style.width=(Number(sp.width||100)/w*100)+"%";model.style.height=(Number(sp.height||100)/h*100)+"%";root.append(model);
+  });
+  if(world.player?.model){const model=document.createElement("model-viewer");model.src=world.player.model;model.setAttribute("camera-controls","");
+    model.style.position="absolute";model.style.left=(worldPosition.x/w*100)+"%";model.style.top=(worldPosition.y/h*100)+"%";
+    model.style.width=(Number(world.player.width||80)/w*100)+"%";model.style.height=(Number(world.player.height||100)/h*100)+"%";root.append(model);}
+}
 function drawWorldFrame() {
   const canvas=$("world-canvas"), world=GAME.world||{}, ctx=canvas.getContext("2d");
   const width=Number(world.width||800),height=Number(world.height||450);
   ctx.clearRect(0,0,width,height);
   if(world.background){const bg=imageFor(world.background);if(bg.complete)ctx.drawImage(bg,0,0,width,height);}
-  (world.sprites||[]).forEach(sprite=>{const img=sprite.image&&imageFor(sprite.image);if(img?.complete&&img.naturalWidth){const fw=Number(sprite.frame_width||img.naturalWidth),fh=Number(sprite.frame_height||img.naturalHeight),frames=Math.max(1,Number(sprite.frames||1)),frame=Math.floor(worldFrame/(1000/Math.max(1,Number(sprite.fps||8))))%frames;ctx.drawImage(img,frame*fw,0,fw,fh,Number(sprite.x||0),Number(sprite.y||0),Number(sprite.width||fw),Number(sprite.height||fh));}else{ctx.fillStyle=sprite.color||"#6d8bab";ctx.fillRect(sprite.x||0,sprite.y||0,sprite.width||40,sprite.height||40);}});
+  (world.sprites||[]).forEach(sprite=>{if(sprite.model)return;const img=sprite.image&&imageFor(sprite.image);if(img?.complete&&img.naturalWidth){const fw=Number(sprite.frame_width||img.naturalWidth),fh=Number(sprite.frame_height||img.naturalHeight),frames=Math.max(1,Number(sprite.frames||1)),frame=Math.floor(worldFrame/(1000/Math.max(1,Number(sprite.fps||8))))%frames;ctx.drawImage(img,frame*fw,0,fw,fh,Number(sprite.x||0),Number(sprite.y||0),Number(sprite.width||fw),Number(sprite.height||fh));}else{ctx.fillStyle=sprite.color||"#6d8bab";ctx.fillRect(sprite.x||0,sprite.y||0,sprite.width||40,sprite.height||40);}});
   const player=world.player||{width:28,height:40,color:"#42d7e8",speed:3};
   const actor={x:worldPosition.x,y:worldPosition.y,width:Number(player.width||28),height:Number(player.height||40)};
   const dx=(worldKeys.has("ArrowRight")||worldKeys.has("d")?1:0)-(worldKeys.has("ArrowLeft")||worldKeys.has("a")?1:0);
@@ -406,7 +419,7 @@ main{max-width:1180px;margin:24px auto;padding:0 18px;display:grid;grid-template
 h2{font-size:25px;margin:12px 0 18px}.story-text{font-size:16px;line-height:2.2;white-space:pre-wrap;color:#d9e4f5;flex:1}
 .scene-image{display:block;width:100%;max-height:280px;object-fit:cover;border-radius:13px;margin:4px 0 16px;border:1px solid var(--line)}
 .dialogue-list{display:grid;gap:9px;margin-top:14px}.dialogue-line{display:flex;align-items:flex-start;gap:12px;padding:12px;background:#0c1728;border:1px solid var(--line);border-radius:12px}
-.dialogue-line img,.dialogue-line video{width:112px;height:112px;object-fit:cover;border-radius:12px}.world-canvas{display:block;width:100%;max-height:70vh;object-fit:contain;background:#111;border-radius:12px;margin:12px 0}.ai-chat{display:grid;gap:8px;padding:12px;background:#111c2e;border:1px solid var(--line);border-radius:12px}.ai-chat input{width:100%;padding:9px;border-radius:8px;border:1px solid var(--line);background:#0b1424;color:var(--text)}.ai-log{max-height:180px;overflow:auto}.ai-log p{white-space:pre-wrap}.dialogue-line strong{color:var(--gold);font-size:13px}.dialogue-line p{margin:5px 0 0;line-height:1.8}
+.dialogue-line img,.dialogue-line video{width:112px;height:112px;object-fit:cover;border-radius:12px}.world-viewport{position:relative;width:100%;aspect-ratio:16/9;margin:12px 0;overflow:hidden;border-radius:12px;background:#111}.world-canvas{display:block;width:100%;height:100%;object-fit:contain;background:#111}#world-models{position:absolute;inset:0;pointer-events:auto}.ai-chat{display:grid;gap:8px;padding:12px;background:#111c2e;border:1px solid var(--line);border-radius:12px}.ai-chat input{width:100%;padding:9px;border-radius:8px;border:1px solid var(--line);background:#0b1424;color:var(--text)}.ai-log{max-height:180px;overflow:auto}.ai-log p{white-space:pre-wrap}.dialogue-line strong{color:var(--gold);font-size:13px}.dialogue-line p{margin:5px 0 0;line-height:1.8}
 audio{width:100%;margin:12px 0}
 .choices{display:grid;gap:10px;margin-top:24px}.choice{border:1px solid #38577e;background:linear-gradient(90deg,#203b62,#1a2b45);color:white;text-align:right;padding:14px 16px;border-radius:12px;font:inherit;cursor:pointer;transition:.16s}
 .choice:hover{border-color:var(--accent);transform:translateY(-1px);background:#294b78}
@@ -425,7 +438,7 @@ footer{text-align:center;color:#71839d;padding:16px;font-size:12px}.menu-screen,
 <div class="toolbar"><button id="save">ذخیره</button><button id="load">بارگذاری</button><button id="reset">شروع دوباره</button></div></header>
 <div id="message" role="status" aria-live="polite"></div>
 <main id="game-main"><section class="panel story"><div class="eyebrow">روایت تعاملی · MONN GAME ENGINE</div><h2 id="scene-title"></h2>
-<img id="scene-image" class="scene-image" alt="" hidden><video id="scene-video" class="scene-image" controls playsinline preload="metadata" hidden></video><model-viewer id="scene-model" camera-controls auto-rotate style="width:100%;height:300px" hidden></model-viewer><canvas id="world-canvas" class="world-canvas" hidden></canvas><div id="scene-text" class="story-text"></div>
+<img id="scene-image" class="scene-image" alt="" hidden><video id="scene-video" class="scene-image" controls playsinline preload="metadata" hidden></video><model-viewer id="scene-model" camera-controls auto-rotate style="width:100%;height:300px" hidden></model-viewer><div id="world-viewport" class="world-viewport" hidden><canvas id="world-canvas" class="world-canvas"></canvas><div id="world-models"></div></div><div id="scene-text" class="story-text"></div>
 <div id="dialogue" class="dialogue-list"></div><audio id="scene-audio" controls preload="none" hidden></audio>
 <div id="choices" class="choices"></div><div id="custom-ui" class="custom-ui"></div></section>
 <aside class="side">
