@@ -37,7 +37,7 @@
   انتخاب "پرسیدن دربارهٔ کلید" -> "yard" {
     شناسه = "ask-key"
     شرط "stat" "سکه" >= 0
-    اثر "quest" "find-key" start
+    اثر مأموریت "find-key" start
     اثر "stat" "سکه" add 1
     صدا = "assets/click.ogg"
   }
