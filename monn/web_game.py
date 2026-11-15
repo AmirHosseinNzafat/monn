@@ -36,6 +36,7 @@ function initialState() {
   };
 }
 let state = initialState();
+let gameStarted = !(GAME.ui && GAME.ui.menu_enabled);
 function setMessage(text, bad=false) {
   $("message").textContent = text || "";
   $("message").classList.toggle("error", !!bad);
@@ -91,6 +92,14 @@ function applyEffect(e) {
   }
 }
 function render() {
+  const menu = $("menu-screen");
+  if (!gameStarted) {
+    menu.hidden = false; $("game-main").hidden = true;
+    $("menu-title").textContent = GAME.ui?.menu_title || GAME.meta.title || "Monn";
+    $("menu-start").textContent = GAME.ui?.start_label || "شروع بازی";
+    return;
+  }
+  menu.hidden = true; $("game-main").hidden = false;
   const scene = sceneMap[state.current_scene];
   $("game-title").textContent = GAME.meta.title || "Monn";
   $("scene-title").textContent = scene.title || scene.id;
@@ -177,6 +186,29 @@ function render() {
     $("choices").append(end);
   }
   $("turn").textContent = "نوبت " + state.turn + " · " + state.visited.length + " صحنه کشف‌شده";
+  renderCustomUI();
+  applyUIVisibility();
+}
+function startGame() { gameStarted = true; render(); }
+function showGameSettings() {
+  const panel = $("settings-panel"); panel.hidden = false;
+}
+function hideGameSettings() { $("settings-panel").hidden = true; }
+function applyUIVisibility() {
+  const ui=GAME.ui||{};
+  $("health-panel").hidden=ui.show_health===false;
+  $("inventory-panel").hidden=ui.show_inventory===false;
+  $("quests-panel").hidden=ui.show_quests===false;
+}
+function renderCustomUI() {
+  const root=$("custom-ui"); root.replaceChildren();
+  (GAME.ui?.elements||[]).forEach(el=>{
+    let node;
+    if(el.type==="button") { node=document.createElement("button");node.className="choice";node.textContent=el.text||"دکمه";node.addEventListener("click",()=>{playSound(GAME.ui?.button_sound);if(el.target&&sceneMap[el.target]){state.current_scene=el.target;render();}}); }
+    else if(el.type==="name_input") { node=document.createElement("input");node.placeholder=el.text||"نام بازیکن";node.value=state.player_name||"";node.addEventListener("input",()=>state.player_name=node.value); }
+    else { node=document.createElement("div");node.className="custom-label";node.textContent=String(el.text||"").replaceAll("{player}",state.player_name||"بازیکن"); }
+    node.style.position="absolute";node.style.left=(Number(el.x)||0)+"%";node.style.top=(Number(el.y)||0)+"%";node.style.width=(Number(el.width)||30)+"%";root.append(node);
+  });
 }
 function playSound(src) {
   if (!src) return;
@@ -226,6 +258,7 @@ function imageFor(src) {
 function overlaps(a,b) {
   return a.x < b.x+b.width && a.x+a.width > b.x && a.y < b.y+b.height && a.y+a.height > b.y;
 }
+let worldLoopStarted=false;
 function drawWorld() {
   const canvas = $("world-canvas"), world = GAME.world || {}, ctx = canvas.getContext("2d");
   const width = Number(world.width || 800), height = Number(world.height || 450);
@@ -252,7 +285,18 @@ function drawWorld() {
   const pimg=player.image&&imageFor(player.image);
   if(pimg?.complete&&pimg.naturalWidth)ctx.drawImage(pimg,worldPosition.x,worldPosition.y,actor.width,actor.height);
   else {ctx.fillStyle=player.color||"#4bd7df";ctx.fillRect(worldPosition.x,worldPosition.y,actor.width,actor.height);}
-  worldFrame++; if(!$("world-canvas").hidden)requestAnimationFrame(drawWorld);
+  worldFrame++;
+  if (!worldLoopStarted) { worldLoopStarted=true; const loop=()=>{ if(!$("world-canvas").hidden)drawWorldFrame(); requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
+}
+function drawWorldFrame() {
+  const canvas=$("world-canvas"), world=GAME.world||{}, ctx=canvas.getContext("2d");
+  const width=Number(world.width||800),height=Number(world.height||450);
+  ctx.clearRect(0,0,width,height);
+  if(world.background){const bg=imageFor(world.background);if(bg.complete)ctx.drawImage(bg,0,0,width,height);}
+  (world.sprites||[]).forEach(sprite=>{const img=sprite.image&&imageFor(sprite.image);if(img?.complete&&img.naturalWidth){const fw=Number(sprite.frame_width||img.naturalWidth),fh=Number(sprite.frame_height||img.naturalHeight),frames=Math.max(1,Number(sprite.frames||1)),frame=Math.floor(worldFrame/(1000/Math.max(1,Number(sprite.fps||8))))%frames;ctx.drawImage(img,frame*fw,0,fw,fh,Number(sprite.x||0),Number(sprite.y||0),Number(sprite.width||fw),Number(sprite.height||fh));}else{ctx.fillStyle=sprite.color||"#6d8bab";ctx.fillRect(sprite.x||0,sprite.y||0,sprite.width||40,sprite.height||40);}});
+  const player=world.player||{width:28,height:40,color:"#42d7e8"},pimg=player.image&&imageFor(player.image);
+  if(pimg?.complete&&pimg.naturalWidth)ctx.drawImage(pimg,worldPosition.x,worldPosition.y,Number(player.width||28),Number(player.height||40));
+  else{ctx.fillStyle=player.color||"#42d7e8";ctx.fillRect(worldPosition.x,worldPosition.y,Number(player.width||28),Number(player.height||40));}
 }
 window.addEventListener("keydown",e=>{if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key))e.preventDefault();worldKeys.add(e.key)});
 window.addEventListener("keyup",e=>worldKeys.delete(e.key));
@@ -299,13 +343,16 @@ function loadGame() {
     if (!raw) throw new Error("ذخیره‌ای برای این بازی پیدا نشد.");
     const data = JSON.parse(raw);
     if (data.version !== 1 || !validSavedState(data.state)) throw new Error("فایل ذخیره معتبر نیست.");
-    state = data.state; setMessage("بازی بارگذاری شد."); render();
+    state = data.state; gameStarted=true; setMessage("بازی بارگذاری شد."); render();
   } catch(error) { setMessage(error.message, true); }
 }
 function resetGame() {
   if (!confirm("از شروع دوباره مطمئنی؟")) return;
-  state = initialState(); setMessage("بازی از ابتدا آغاز شد."); render();
+  state = initialState(); gameStarted=true; setMessage("بازی از ابتدا آغاز شد."); render();
 }
+$("menu-start").addEventListener("click", startGame);
+$("menu-settings").addEventListener("click", showGameSettings);
+$("settings-close").addEventListener("click", hideGameSettings);
 $("save").addEventListener("click", saveGame);
 $("load").addEventListener("click", loadGame);
 $("reset").addEventListener("click", resetGame);
@@ -338,20 +385,20 @@ audio{width:100%;margin:12px 0}
 .quest{color:var(--gold)}ul{padding-right:20px;color:var(--muted);line-height:1.9;font-size:13px}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap}.toolbar button{font:inherit;border:1px solid var(--line);background:#1b2a42;color:var(--text);padding:9px 12px;border-radius:9px;cursor:pointer}.toolbar button:hover{border-color:var(--accent)}
 #message{max-width:1180px;margin:0 auto 18px;padding:0 18px;color:#8dd7ae;min-height:22px}#message.error{color:var(--danger)}
-footer{text-align:center;color:#71839d;padding:16px;font-size:12px}
+footer{text-align:center;color:#71839d;padding:16px;font-size:12px}.menu-screen,.settings-panel{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:linear-gradient(140deg,#080e1d,#172a45);background-size:cover;padding:20px}.menu-card{width:min(560px,100%);padding:36px;background:#0e1a2deF;border:1px solid #38577e;border-radius:20px;display:grid;gap:14px;text-align:center;box-shadow:0 25px 90px #0009}.menu-card h1{font-size:32px}.settings-panel{z-index:31}.custom-ui{position:relative;min-height:0}.custom-ui .custom-label{padding:8px;background:#101b2dcc;border-radius:8px}
 @media(max-width:780px){main{grid-template-columns:1fr;margin:14px auto}.story{min-height:320px}header{padding:18px}h2{font-size:21px}}
 </style></head><body>
-<header><div><h1 id="game-title">""" + page_title + """</h1><small id="turn"></small></div>
+<div id="menu-screen" class="menu-screen" hidden><div class="menu-card"><h1 id="menu-title"></h1><button class="choice" id="menu-start">شروع بازی</button><button class="choice" id="menu-settings">تنظیمات</button></div></div><div id="settings-panel" class="settings-panel" hidden><div class="menu-card"><h2>تنظیمات بازی</h2><label><input id="mute-game" type="checkbox"> بی‌صدا</label><button id="settings-close">بازگشت</button></div></div><header><div><h1 id="game-title">""" + page_title + """</h1><small id="turn"></small></div>
 <div class="toolbar"><button id="save">ذخیره</button><button id="load">بارگذاری</button><button id="reset">شروع دوباره</button></div></header>
 <div id="message" role="status" aria-live="polite"></div>
-<main><section class="panel story"><div class="eyebrow">روایت تعاملی · MONN GAME ENGINE</div><h2 id="scene-title"></h2>
+<main id="game-main"><section class="panel story"><div class="eyebrow">روایت تعاملی · MONN GAME ENGINE</div><h2 id="scene-title"></h2>
 <img id="scene-image" class="scene-image" alt="" hidden><video id="scene-video" class="scene-image" controls playsinline preload="metadata" hidden></video><model-viewer id="scene-model" camera-controls auto-rotate style="width:100%;height:300px" hidden></model-viewer><canvas id="world-canvas" class="world-canvas" hidden></canvas><div id="scene-text" class="story-text"></div>
 <div id="dialogue" class="dialogue-list"></div><audio id="scene-audio" controls preload="none" hidden></audio>
-<div id="choices" class="choices"></div></section>
+<div id="choices" class="choices"></div><div id="custom-ui" class="custom-ui"></div></section>
 <aside class="side">
-<section class="panel"><h3>وضعیت بازیکن</h3><div id="health"></div><div class="health-track"><div id="health-bar" class="health-fill"></div></div><div id="stats" class="stat-list" style="margin-top:12px"></div></section>
-<section class="panel"><h3>کوله‌پشتی</h3><div id="inventory"></div></section>
-<section class="panel"><h3>مأموریت‌ها</h3><div id="quests"></div></section>
+<section class="panel" id="health-panel"><h3>وضعیت بازیکن</h3><div id="health"></div><div class="health-track"><div id="health-bar" class="health-fill"></div></div><div id="stats" class="stat-list" style="margin-top:12px"></div></section>
+<section class="panel" id="inventory-panel"><h3>کوله‌پشتی</h3><div id="inventory"></div></section>
+<section class="panel" id="quests-panel"><h3>مأموریت‌ها</h3><div id="quests"></div></section>
 <section class="panel"><h3>دفترچه وقایع</h3><ul id="journal"></ul></section>
 </aside></main><footer>ساخته‌شده با موتور بازی MonnLang · ذخیره محلی روی همین مرورگر</footer>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script><script>""" + script + """</script></body></html>"""
