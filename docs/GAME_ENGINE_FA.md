@@ -416,7 +416,7 @@ monn examples/story_adventure.mongame.json --game --web --output dist/index.html
 
 بازیکن با WASD یا کلیدهای جهت حرکت می‌کند. برخورد اشیا با مستطیل‌های AABB محاسبه می‌شود. Sprite sheet افقی با frames، fps، frame_width و frame_height قابل تنظیم است. این نسخه هنوز tilemap حرفه‌ای، فیزیک پیچیده یا انیمیشن استخوانی ندارد.
 
-## ۸. استفاده از موتور در Python
+## استفاده از موتور در Python
 
 \`\`\`python
 from monn import GameEngine, load_project
@@ -447,7 +447,7 @@ with open("game.html", "w", encoding="utf-8") as file:
     file.write(html)
 \`\`\`
 
-## ۹. تست و عیب‌یابی
+## تست و عیب‌یابی
 
 \`\`\`powershell
 py -m compileall -q monn monn_cli.py
@@ -464,7 +464,7 @@ py -m unittest discover -s tests -v
 - آیتم کافی وجود ندارد: تعداد آیتم لازم برای مصرف را بررسی کن.
 - ذخیره متعلق به نسخه دیگری است: ذخیره فقط برای همان محتوای پروژه معتبر است؛ تغییر پروژه fingerprint را عوض می‌کند.
 
-## ۱۰. محدوده و گام‌های بعدی
+## نقشه راه و گام‌های بعدی
 
 نسخهٔ ۱.۴ شامل Studio گرافیکی، پیش‌نمایش زنده، ویرایشگر منطق، رسانهٔ ویدیویی/صوتی، گفتگوی NPC، رابط قابل تنظیم، جهان دوبعدی پایه، برخورد AABB و زبان بومی MONN نسخهٔ ۲ است.
 
