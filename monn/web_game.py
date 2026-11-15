@@ -265,7 +265,7 @@ function renderAICharacters(scene) {
     send.addEventListener("click", async () => {
       const message = input.value.trim(), token = key.value.trim();
       if (!message) return;
-      const scripted=(character.ai.rules||[]).find(rule=>message.toLocaleLowerCase().includes(String(rule.trigger||"").toLocaleLowerCase()));
+      const scripted=(character.ai.rules||[]).find(rule=>String(rule.trigger||"").trim()&&message.toLocaleLowerCase().includes(String(rule.trigger).toLocaleLowerCase()));
       if (scripted) { const item=document.createElement("p");item.textContent=(character.name||"شخصیت")+": "+scripted.response;log.append(item);history.push({role:"user",content:message},{role:"assistant",content:scripted.response});input.value="";return; }
       if (!token) { answer.textContent = "برای پاسخ‌های آزاد، کلید API را وارد کن. قواعد پاسخ ثابت بدون کلید کار می‌کنند؛ کلید در فایل بازی ذخیره نمی‌شود."; return; }
       send.disabled = true; answer.textContent = "در حال دریافت پاسخ...";
