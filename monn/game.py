@@ -206,6 +206,8 @@ class GameProject:
             for timing in ("video_start", "video_end"):
                 if timing in scene and _safe_number(scene[timing], timing) < 0:
                     raise GameValidationError("{} نمی‌تواند منفی باشد".format(timing))
+            if scene.get("video_end") and _safe_number(scene["video_end"], "video_end") <= _safe_number(scene.get("video_start", 0), "video_start"):
+                raise GameValidationError("پایان کلیپ صحنه باید بعد از شروع آن باشد")
             dialogue = scene.get("dialogue", [])
             if not isinstance(dialogue, list):
                 raise GameValidationError("dialogue صحنه باید فهرست باشد")
@@ -219,6 +221,8 @@ class GameProject:
                 for timing in ("video_start", "video_end"):
                     if timing in line and _safe_number(line[timing], timing) < 0:
                         raise GameValidationError("{} دیالوگ نمی‌تواند منفی باشد".format(timing))
+                if line.get("video_end") and _safe_number(line["video_end"], "video_end") <= _safe_number(line.get("video_start", 0), "video_start"):
+                    raise GameValidationError("پایان کلیپ دیالوگ باید بعد از شروع آن باشد")
             choices = scene.get("choices", [])
             if not isinstance(choices, list):
                 raise GameValidationError("choices صحنه باید فهرست باشد")
@@ -270,6 +274,8 @@ class GameProject:
             for timing in ("video_start", "video_end"):
                 if timing in character and _safe_number(character[timing], timing) < 0:
                     raise GameValidationError("{} شخصیت نمی‌تواند منفی باشد".format(timing))
+            if character.get("video_end") and _safe_number(character["video_end"], "video_end") <= _safe_number(character.get("video_start", 0), "video_start"):
+                raise GameValidationError("پایان کلیپ شخصیت باید بعد از شروع آن باشد")
             if "ai" in character and not isinstance(character["ai"], dict):
                 raise GameValidationError("تنظیمات AI شخصیت باید یک شیء باشد")
             ai = character.get("ai", {})
