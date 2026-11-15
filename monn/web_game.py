@@ -214,10 +214,18 @@ function render() {
   renderCustomUI();
   applyUIVisibility();
 }
-function startGame() { gameStarted = true; render(); }
+function startGame() { gameStarted = true; playSound(GAME.ui?.button_sound); const music=$("ui-audio");if(GAME.ui?.background_music){music.src=GAME.ui.background_music;music.loop=true;music.volume=Number(GAME.ui.music_volume??0.45);music.play().catch(()=>{});}render(); }
 function showGameSettings() {
   const panel = $("settings-panel"); panel.hidden = false;
 }
+function showCredits() {
+  const root=$("credits-list");root.replaceChildren();
+  const add=(title,author,source,license)=>{const row=document.createElement("div");row.className="credit-row";const strong=document.createElement("strong");strong.textContent=title||"دارایی";const info=document.createElement("p");info.textContent="پدیدآورنده: "+(author||"ثبت نشده")+" · مجوز: "+(license||"ثبت نشده");row.append(strong,info);if(source&&/^https?:\/\//i.test(source)){const link=document.createElement("a");link.href=source;link.target="_blank";link.rel="noopener noreferrer";link.textContent="مشاهده منبع";row.append(link);}root.append(row);};
+  if(GAME.meta.author||GAME.meta.license)add(GAME.meta.title,GAME.meta.author,"",GAME.meta.license);
+  (GAME.assets||[]).forEach(asset=>add(asset.name,asset.author,asset.source,asset.license));
+  $("credits-panel").hidden=false;
+}
+function hideCredits() { $("credits-panel").hidden=true; }
 function hideGameSettings() { $("settings-panel").hidden = true; }
 function applyUIVisibility() {
   const ui=GAME.ui||{};
@@ -399,6 +407,8 @@ function resetGame() {
 $("menu-start").addEventListener("click", startGame);
 $("menu-settings").addEventListener("click", showGameSettings);
 $("settings-close").addEventListener("click", hideGameSettings);
+$("credits-open").addEventListener("click", showCredits);
+$("credits-close").addEventListener("click", hideCredits);
 $("save").addEventListener("click", saveGame);
 $("load").addEventListener("click", loadGame);
 $("reset").addEventListener("click", resetGame);
@@ -431,12 +441,12 @@ audio{width:100%;margin:12px 0}
 .quest{color:var(--gold)}ul{padding-right:20px;color:var(--muted);line-height:1.9;font-size:13px}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap}.toolbar button{font:inherit;border:1px solid var(--line);background:#1b2a42;color:var(--text);padding:9px 12px;border-radius:9px;cursor:pointer}.toolbar button:hover{border-color:var(--accent)}
 #message{max-width:1180px;margin:0 auto 18px;padding:0 18px;color:#8dd7ae;min-height:22px}#message.error{color:var(--danger)}
-footer{text-align:center;color:#71839d;padding:16px;font-size:12px}.menu-screen,.settings-panel{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:linear-gradient(140deg,#080e1d,#172a45);background-size:cover;padding:20px}.menu-card{width:min(560px,100%);padding:36px;background:#0e1a2deF;border:1px solid #38577e;border-radius:20px;display:grid;gap:14px;text-align:center;box-shadow:0 25px 90px #0009}.menu-card h1{font-size:32px}.settings-panel{z-index:31}.custom-ui{position:relative;min-height:0}.custom-ui .custom-label{padding:8px;background:#101b2dcc;border-radius:8px}
+footer{text-align:center;color:#71839d;padding:16px;font-size:12px}.menu-screen,.settings-panel{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:linear-gradient(140deg,#080e1d,#172a45);background-size:cover;padding:20px}.menu-card{width:min(560px,100%);padding:36px;background:#0e1a2deF;border:1px solid #38577e;border-radius:20px;display:grid;gap:14px;text-align:center;box-shadow:0 25px 90px #0009}.menu-card h1{font-size:32px}.credit-row{text-align:right;border:1px solid var(--line);padding:10px;border-radius:9px;margin:8px 0}.credit-row p{font-size:12px;color:var(--muted)}.credit-row a{color:#7dddea}.settings-panel{z-index:31}.custom-ui{position:relative;min-height:0}.custom-ui .custom-label{padding:8px;background:#101b2dcc;border-radius:8px}
 @media(max-width:780px){main{grid-template-columns:1fr;margin:14px auto}.story{min-height:320px}header{padding:18px}h2{font-size:21px}}
 </style></head><body>
-<div id="menu-screen" class="menu-screen" hidden><div class="menu-card"><h1 id="menu-title"></h1><button class="choice" id="menu-start">شروع بازی</button><button class="choice" id="menu-settings">تنظیمات</button></div></div><div id="settings-panel" class="settings-panel" hidden><div class="menu-card"><h2>تنظیمات بازی</h2><label><input id="mute-game" type="checkbox"> بی‌صدا</label><button id="settings-close">بازگشت</button></div></div><header><div><h1 id="game-title">""" + page_title + """</h1><small id="turn"></small></div>
-<div class="toolbar"><button id="save">ذخیره</button><button id="load">بارگذاری</button><button id="reset">شروع دوباره</button></div></header>
-<div id="message" role="status" aria-live="polite"></div>
+<div id="menu-screen" class="menu-screen" hidden><div class="menu-card"><h1 id="menu-title"></h1><button class="choice" id="menu-start">شروع بازی</button><button class="choice" id="menu-settings">تنظیمات</button></div></div><div id="credits-panel" class="settings-panel" hidden><div class="menu-card"><h2>عوامل و مجوزها</h2><div id="credits-list"></div><button id="credits-close">بازگشت</button></div></div><div id="settings-panel" class="settings-panel" hidden><div class="menu-card"><h2>تنظیمات بازی</h2><label><input id="mute-game" type="checkbox"> بی‌صدا</label><button id="settings-close">بازگشت</button></div></div><header><div><h1 id="game-title">""" + page_title + """</h1><small id="turn"></small></div>
+<div class="toolbar"><button id="credits-open">منابع و مجوزها</button><button id="save">ذخیره</button><button id="load">بارگذاری</button><button id="reset">شروع دوباره</button></div></header>
+<audio id="ui-audio" preload="none"></audio><div id="message" role="status" aria-live="polite"></div>
 <main id="game-main"><section class="panel story"><div class="eyebrow">روایت تعاملی · MONN GAME ENGINE</div><h2 id="scene-title"></h2>
 <img id="scene-image" class="scene-image" alt="" hidden><video id="scene-video" class="scene-image" controls playsinline preload="metadata" hidden></video><model-viewer id="scene-model" camera-controls auto-rotate style="width:100%;height:300px" hidden></model-viewer><div id="world-viewport" class="world-viewport" hidden><canvas id="world-canvas" class="world-canvas"></canvas><div id="world-models"></div></div><div id="scene-text" class="story-text"></div>
 <div id="dialogue" class="dialogue-list"></div><audio id="scene-audio" controls preload="none" hidden></audio>
