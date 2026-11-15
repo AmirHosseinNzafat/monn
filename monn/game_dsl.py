@@ -69,11 +69,18 @@ def dumps_monn(project):
             for name, amount in value.items():
                 lines.append("  ویژگی {} = {}".format(_q(name), _q(amount)))
         elif key == "inventory":
-            for item in value:
-                if isinstance(item, str):
-                    lines.append("  آیتم {} = 1".format(_q(item)))
-                else:
-                    lines.append("  آیتم {} = {}".format(_q(item.get("name", "")), _q(item.get("count", 1))))
+            if not value:
+                lines.append("  کوله_پشتی = []")
+            else:
+                for item in value:
+                    if isinstance(item, str):
+                        lines.append("  آیتم {} = 1".format(_q(item)))
+                    else:
+                        lines.append("  آیتم {} = {}".format(_q(item.get("name", "")), _q(item.get("count", 1))))
+    if "stats" in player and not player["stats"]:
+        lines.append("  ویژگی‌ها = {}")
+    if "inventory" not in player:
+        lines.append("  کوله_پشتی = []")
     lines.append(_extras(player, {"health", "max_health", "stats", "inventory"}).rstrip())
     lines.extend(["}", ""])
     for character in d.get("characters", []):
@@ -192,7 +199,7 @@ def loads_monn(source):
         except json.JSONDecodeError as exc:
             raise GameValidationError("ساختار داده‌های پروژه MONN خراب است: {}".format(exc)) from exc
 
-    data = {"meta": {}, "player": {}, "characters": [], "quests": [], "scenes": []}
+    data = {"meta": {}, "player": {}, "scenes": []}
     stack = []
     current_scene = None
 
@@ -220,16 +227,16 @@ def loads_monn(source):
             prefix = line[len("مأموریت "):].split("{",1)[0].strip()
             qid, title, rest = _quoted_pair(prefix)
             quest = {"id": qid, "title": title}
-            data["quests"].append(quest)
+            data.setdefault("quests", []).append(quest)
             if line.endswith("{"): stack.append(("quest", quest))
             continue
         if line.startswith("شخصیت "):
             cid = _value(line[len("شخصیت "):].split("{",1)[0].strip())
-            obj = {"id": cid, "expressions": {}, "ai": {"enabled": False, "rules": []}}
-            data["characters"].append(obj); stack.append(("character", obj)); continue
+            obj = {"id": cid}
+            data.setdefault("characters", []).append(obj); stack.append(("character", obj)); continue
         if line.startswith("صحنه "):
             sid, title, rest = _quoted_pair(line[len("صحنه "):].split("{",1)[0].strip())
-            obj = {"id": sid, "title": title, "text": "", "choices": [], "dialogue": []}
+            obj = {"id": sid, "title": title, "text": "", "choices": []}
             data["scenes"].append(obj); current_scene = obj; stack.append(("scene", obj)); continue
         if line.startswith("انتخاب "):
             prefix = line[len("انتخاب "):].split("{",1)[0].strip()
