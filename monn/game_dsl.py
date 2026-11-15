@@ -97,10 +97,9 @@ def dumps_monn(project):
         lines.append(_extras(character, {"id","name","portrait","video","voice","model","video_start","video_end","expressions","ai"}).rstrip())
         lines.extend(["}", ""])
     for quest in d.get("quests", []):
-        lines.append("مأموریت {} {}".format(_q(quest["id"]), _q(quest.get("title", quest["id"]))))
-        extra = _extras(quest, {"id","title"})
-        if extra:
-            lines.append(extra.rstrip())
+        lines.append("مأموریت {} {} {{".format(_q(quest["id"]), _q(quest.get("title", quest["id"]))))
+        lines.append(_extras(quest, {"id","title"}).rstrip())
+        lines.append("}")
     if d.get("quests"):
         lines.append("")
     for scene in d.get("scenes", []):
@@ -113,11 +112,7 @@ def dumps_monn(project):
             if key in scene:
                 lines.append("  {} = {}".format(mapped, _q(scene[key])))
         for line in scene.get("dialogue", []):
-            lines.append("  دیالوگ {} {}".format(_q(line.get("character") or ""), _q(line.get("text", ""))))
-            for key, mapped in (("expression","حالت"),("video","ویدیو"),("voice","صدا"),
-                                ("portrait","تصویر"),("video_start","شروع_کلیپ"),("video_end","پایان_کلیپ")):
-                if key in line:
-                    lines.append("  {} = {}".format(mapped, _q(line[key])))
+            lines.append("  دیالوگ = {}".format(_q(line)))
         for choice in scene.get("choices", []):
             lines.append("  انتخاب {} -> {} {{".format(_q(choice.get("text", "")), _q(choice.get("target") or "")))
             lines.append("    شناسه = {}".format(_q(choice.get("id"))))
@@ -222,9 +217,11 @@ def loads_monn(source):
         if line.startswith("شروع ") and ctx()[0] == "root":
             data["meta"]["start_scene"] = _value(line[5:]); continue
         if line.startswith("مأموریت "):
-            qid, title, rest = _quoted_pair(line[len("مأموریت "):])
+            prefix = line[len("مأموریت "):].split("{",1)[0].strip()
+            qid, title, rest = _quoted_pair(prefix)
             quest = {"id": qid, "title": title}
             data["quests"].append(quest)
+            if line.endswith("{"): stack.append(("quest", quest))
             continue
         if line.startswith("شخصیت "):
             cid = _value(line[len("شخصیت "):].split("{",1)[0].strip())
@@ -265,6 +262,8 @@ def loads_monn(source):
             name, kind, rest = _quoted_pair(line[len("دارایی "):].split("{",1)[0].strip())
             obj = {"name":name,"kind":kind}; data.setdefault("assets",[]).append(obj); stack.append(("asset",obj)); continue
         kind, obj = ctx()
+        if line.startswith("دیالوگ =") and kind == "scene":
+            obj.setdefault("dialogue",[]).append(_value(line.split("=",1)[1])); continue
         if line.startswith("دیالوگ ") and kind == "scene":
             character, text_value, rest = _quoted_pair(line[len("دیالوگ "):])
             obj.setdefault("dialogue",[]).append({"character":character or None,"text":text_value}); continue
@@ -275,34 +274,278 @@ def loads_monn(source):
             match = re.match(r'قانون_پاسخ\s+(.+?)\s*=>\s*(.+)$', line)
             trigger, response = _value(match.group(1)), _value(match.group(2))
             obj.setdefault("ai",{}).setdefault("rules",[]).append({"trigger":trigger,"response":response}); continue
+        if kind == "player" and line.startswith("ویژگی "):
+            left, raw_value = line.split("=",1)
+            name = _value(left[len("ویژگی "):].strip())
+            obj.setdefault("stats",{})[name]=_value(raw_value); continue
+        if kind == "player" and line.startswith("آیتم "):
+            left, raw_value = line.split("=",1)
+            name = _value(left[len("آیتم "):].strip())
+            obj.setdefault("inventory",[]).append({"name":name,"count":int(_value(raw_value))}); continue
         if line.startswith("شرط ") and kind == "choice":
             match = re.match(r'شرط\s+(.+?)\s+(.+?)\s+(==|!=|>=|<=|>|<|=)\s+(.+)$', line)
             if not match: raise GameValidationError("شرط MONN نامعتبر است: " + line)
             typ, name, op, value = match.groups()
             obj["conditions"].append({"type":_value(typ),"name":_value(name),"op":op,"value":_value(value)}); continue
-        if line.startswith("اثر ") and kind == "choice":
-            rest = line[len("اثر "):]
-            if rest.startswith("دفترچه "):
-                obj["effects"].append({"type":"journal","text":_value(rest[len("دفترچه "):])}); continue
-            match = re.match(r'(.+?)\s+(.+?)\s+(add|set|subtract|remove|start|complete|fail|\+)\s+(.+)$', rest)
-            if match:
-                typ, name, op, value = match.groups(); typ=_value(typ); name=_value(name); value=_value(value)
-                if typ == "item": obj["effects"].append({"type":"item","name":name,"action":{"+" :"add"}.get(op,op),"count":int(value)})
-                elif typ == "quest": obj["effects"].append({"type":"quest","name":name,"action":op})
-                elif typ == "flag": obj["effects"].append({"type":"flag","name":name,"value":value})
-                else: obj["effects"].append({"type":typ,"name":name,"op":{"+" :"add"}.get(op,op),"value":value})
-                continue
-            raise GameValidationError("اثر MONN نامعتبر است: " + line)
+        if line.startswith("اثر دفترچه ") and kind == "choice":
+            obj["effects"].append({"type":"journal","text":_value(line[len("اثر دفترچه "):])}); continue
         if line.startswith("اثر مأموریت ") and kind == "choice":
-            name, action, rest = _quoted_pair(line[len("اثر مأموریت "):] + ' ""')
-            obj["effects"].append({"type":"quest","name":name,"action":action}); continue
+            match = re.match(r'اثر مأموریت\s+(.+?)\s+(start|complete|fail)
+        if "=" in line:
+            key, raw = [part.strip() for part in line.split("=",1)]
+            value = _value(raw)
+            if key == "داده_ریشه": data.update(value); continue
+            if key == "جزئیات": obj.update(value); continue
+            if kind == "root":
+                meta_map={"پدیدآورنده":"author","مجوز":"license","پایان":"ending_scene","صحنه_منو":"menu_scene"}
+                data["meta"][meta_map.get(key,key)] = value
+            elif kind == "player":
+                if key == "جان": obj["health"]=value
+                elif key == "حداکثر_جان": obj["max_health"]=value
+                else: obj[key]=value
+            elif kind == "character":
+                mapping={"نام":"name","تصویر":"portrait","ویدیو":"video","صدا":"voice","مدل":"model",
+                         "شروع_کلیپ":"video_start","پایان_کلیپ":"video_end","دستور":"system_prompt",
+                         "مدل_هوش":"model","نشانی_API":"api_base","هوش_مصنوعی":"enabled"}
+                if key in ("ویژگی","حالت"): obj.setdefault("expressions",{})[value[0]]=value[1]
+                elif key in ("دستور","مدل_هوش","نشانی_API","هوش_مصنوعی"):
+                    ai=obj.setdefault("ai",{"enabled":False,"rules":[]});ai[mapping[key]]=value
+                else: obj[mapping.get(key,key)]=value
+            elif kind == "scene":
+                mapping={"روایت":"text","تصویر":"image","ویدیو":"video","شروع_کلیپ":"video_start",
+                         "پایان_کلیپ":"video_end","تکرار_کلیپ":"video_loop","موسیقی":"music",
+                         "مدل":"model","صدای_دکمه":"button_sound","جهان_فعال":"world_enabled"}
+                obj[mapping.get(key,key)]=value
+            elif kind == "choice":
+                if key == "شناسه": obj["id"]=value
+                elif key == "صدا": obj["sound"]=value
+            elif kind in ("world","world_player","sprite"):
+                mapping={"فعال":"enabled","عرض":"width","ارتفاع":"height","پس‌زمینه":"background","رنگ":"color","برخورد":"solid"}
+                obj[mapping.get(key,key)]=value
+            elif kind == "ui":
+                mapping={"منو_فعال":"menu_enabled","عنوان_منو":"menu_title","برچسب_شروع":"start_label",
+                         "برچسب_تنظیمات":"settings_label","پس‌زمینه_منو":"menu_background","موسیقی_منو":"background_music",
+                         "صدای_دکمه":"button_sound","نمایش_جان":"show_health","نمایش_کوله":"show_inventory",
+                         "نمایش_مأموریت":"show_quests"}
+                obj[mapping.get(key,key)]=value
+            elif kind == "asset":
+                mapping={"پدیدآورنده":"author","منبع":"source","مجوز":"license","یادداشت":"notes","داده":"data"}
+                obj[mapping.get(key,key)]=value
+            continue
+        if kind == "player" and line.startswith("ویژگی "):
+            name, value, rest = _quoted_pair(line[len("ویژگی "):].split("=",1)[0].strip()+" "+line.split("=",1)[1].strip())
+            obj.setdefault("stats",{})[name]=value; continue
+        if kind == "player" and line.startswith("آیتم "):
+            name, value, rest = _quoted_pair(line[len("آیتم "):].split("=",1)[0].strip()+" "+line.split("=",1)[1].strip())
+            obj.setdefault("inventory",[]).append({"name":name,"count":int(value)}); continue
+        if kind == "asset" and line.startswith("داده "):
+            obj["data"]=_value(line[len("داده "):]); continue
+    if not data.get("meta",{}).get("start_scene") and data.get("scenes"):
+        data["meta"]["start_scene"] = data["scenes"][0]["id"]
+    if not data.get("meta",{}).get("title"):
+        data["meta"]["title"] = "بازی MONN"
+    return GameProject(data)
+
+
+def load_monn(path):
+    return loads_monn(Path(path).read_text(encoding="utf-8"))
+, line)
+            if not match: raise GameValidationError("اثر مأموریت MONN نامعتبر است: " + line)
+            obj["effects"].append({"type":"quest","name":_value(match.group(1)),"action":match.group(2)}); continue
         if line.startswith("اثر آیتم ") and kind == "choice":
-            match = re.match(r'اثر آیتم\s+(.+?)\s+(add|set|remove)\s+(.+)$', line)
+            match = re.match(r'اثر آیتم\s+(.+?)\s+(add|set|remove)\s+(.+)
+        if "=" in line:
+            key, raw = [part.strip() for part in line.split("=",1)]
+            value = _value(raw)
+            if key == "داده_ریشه": data.update(value); continue
+            if key == "جزئیات": obj.update(value); continue
+            if kind == "root":
+                meta_map={"پدیدآورنده":"author","مجوز":"license","پایان":"ending_scene","صحنه_منو":"menu_scene"}
+                data["meta"][meta_map.get(key,key)] = value
+            elif kind == "player":
+                if key == "جان": obj["health"]=value
+                elif key == "حداکثر_جان": obj["max_health"]=value
+                else: obj[key]=value
+            elif kind == "character":
+                mapping={"نام":"name","تصویر":"portrait","ویدیو":"video","صدا":"voice","مدل":"model",
+                         "شروع_کلیپ":"video_start","پایان_کلیپ":"video_end","دستور":"system_prompt",
+                         "مدل_هوش":"model","نشانی_API":"api_base","هوش_مصنوعی":"enabled"}
+                if key in ("ویژگی","حالت"): obj.setdefault("expressions",{})[value[0]]=value[1]
+                elif key in ("دستور","مدل_هوش","نشانی_API","هوش_مصنوعی"):
+                    ai=obj.setdefault("ai",{"enabled":False,"rules":[]});ai[mapping[key]]=value
+                else: obj[mapping.get(key,key)]=value
+            elif kind == "scene":
+                mapping={"روایت":"text","تصویر":"image","ویدیو":"video","شروع_کلیپ":"video_start",
+                         "پایان_کلیپ":"video_end","تکرار_کلیپ":"video_loop","موسیقی":"music",
+                         "مدل":"model","صدای_دکمه":"button_sound","جهان_فعال":"world_enabled"}
+                obj[mapping.get(key,key)]=value
+            elif kind == "choice":
+                if key == "شناسه": obj["id"]=value
+                elif key == "صدا": obj["sound"]=value
+            elif kind in ("world","world_player","sprite"):
+                mapping={"فعال":"enabled","عرض":"width","ارتفاع":"height","پس‌زمینه":"background","رنگ":"color","برخورد":"solid"}
+                obj[mapping.get(key,key)]=value
+            elif kind == "ui":
+                mapping={"منو_فعال":"menu_enabled","عنوان_منو":"menu_title","برچسب_شروع":"start_label",
+                         "برچسب_تنظیمات":"settings_label","پس‌زمینه_منو":"menu_background","موسیقی_منو":"background_music",
+                         "صدای_دکمه":"button_sound","نمایش_جان":"show_health","نمایش_کوله":"show_inventory",
+                         "نمایش_مأموریت":"show_quests"}
+                obj[mapping.get(key,key)]=value
+            elif kind == "asset":
+                mapping={"پدیدآورنده":"author","منبع":"source","مجوز":"license","یادداشت":"notes"}
+                obj[mapping.get(key,key)]=value
+            continue
+        if kind == "player" and line.startswith("ویژگی "):
+            name, value, rest = _quoted_pair(line[len("ویژگی "):].split("=",1)[0].strip()+" "+line.split("=",1)[1].strip())
+            obj.setdefault("stats",{})[name]=value; continue
+        if kind == "player" and line.startswith("آیتم "):
+            name, value, rest = _quoted_pair(line[len("آیتم "):].split("=",1)[0].strip()+" "+line.split("=",1)[1].strip())
+            obj.setdefault("inventory",[]).append({"name":name,"count":int(value)}); continue
+        if kind == "asset" and line.startswith("داده "):
+            obj["data"]=_value(line[len("داده "):]); continue
+    if not data.get("meta",{}).get("start_scene") and data.get("scenes"):
+        data["meta"]["start_scene"] = data["scenes"][0]["id"]
+    if not data.get("meta",{}).get("title"):
+        data["meta"]["title"] = "بازی MONN"
+    return GameProject(data)
+
+
+def load_monn(path):
+    return loads_monn(Path(path).read_text(encoding="utf-8"))
+, line)
+            if not match: raise GameValidationError("اثر آیتم MONN نامعتبر است: " + line)
             name, action, count = match.groups()
             obj["effects"].append({"type":"item","name":_value(name),"action":action,"count":int(_value(count))}); continue
         if line.startswith("اثر پرچم ") and kind == "choice":
-            match = re.match(r'اثر پرچم\s+(.+?)\s*=\s*(.+)$', line)
+            match = re.match(r'اثر پرچم\s+(.+?)\s*=\s*(.+)
+        if "=" in line:
+            key, raw = [part.strip() for part in line.split("=",1)]
+            value = _value(raw)
+            if key == "داده_ریشه": data.update(value); continue
+            if key == "جزئیات": obj.update(value); continue
+            if kind == "root":
+                meta_map={"پدیدآورنده":"author","مجوز":"license","پایان":"ending_scene","صحنه_منو":"menu_scene"}
+                data["meta"][meta_map.get(key,key)] = value
+            elif kind == "player":
+                if key == "جان": obj["health"]=value
+                elif key == "حداکثر_جان": obj["max_health"]=value
+                else: obj[key]=value
+            elif kind == "character":
+                mapping={"نام":"name","تصویر":"portrait","ویدیو":"video","صدا":"voice","مدل":"model",
+                         "شروع_کلیپ":"video_start","پایان_کلیپ":"video_end","دستور":"system_prompt",
+                         "مدل_هوش":"model","نشانی_API":"api_base","هوش_مصنوعی":"enabled"}
+                if key in ("ویژگی","حالت"): obj.setdefault("expressions",{})[value[0]]=value[1]
+                elif key in ("دستور","مدل_هوش","نشانی_API","هوش_مصنوعی"):
+                    ai=obj.setdefault("ai",{"enabled":False,"rules":[]});ai[mapping[key]]=value
+                else: obj[mapping.get(key,key)]=value
+            elif kind == "scene":
+                mapping={"روایت":"text","تصویر":"image","ویدیو":"video","شروع_کلیپ":"video_start",
+                         "پایان_کلیپ":"video_end","تکرار_کلیپ":"video_loop","موسیقی":"music",
+                         "مدل":"model","صدای_دکمه":"button_sound","جهان_فعال":"world_enabled"}
+                obj[mapping.get(key,key)]=value
+            elif kind == "choice":
+                if key == "شناسه": obj["id"]=value
+                elif key == "صدا": obj["sound"]=value
+            elif kind in ("world","world_player","sprite"):
+                mapping={"فعال":"enabled","عرض":"width","ارتفاع":"height","پس‌زمینه":"background","رنگ":"color","برخورد":"solid"}
+                obj[mapping.get(key,key)]=value
+            elif kind == "ui":
+                mapping={"منو_فعال":"menu_enabled","عنوان_منو":"menu_title","برچسب_شروع":"start_label",
+                         "برچسب_تنظیمات":"settings_label","پس‌زمینه_منو":"menu_background","موسیقی_منو":"background_music",
+                         "صدای_دکمه":"button_sound","نمایش_جان":"show_health","نمایش_کوله":"show_inventory",
+                         "نمایش_مأموریت":"show_quests"}
+                obj[mapping.get(key,key)]=value
+            elif kind == "asset":
+                mapping={"پدیدآورنده":"author","منبع":"source","مجوز":"license","یادداشت":"notes"}
+                obj[mapping.get(key,key)]=value
+            continue
+        if kind == "player" and line.startswith("ویژگی "):
+            name, value, rest = _quoted_pair(line[len("ویژگی "):].split("=",1)[0].strip()+" "+line.split("=",1)[1].strip())
+            obj.setdefault("stats",{})[name]=value; continue
+        if kind == "player" and line.startswith("آیتم "):
+            name, value, rest = _quoted_pair(line[len("آیتم "):].split("=",1)[0].strip()+" "+line.split("=",1)[1].strip())
+            obj.setdefault("inventory",[]).append({"name":name,"count":int(value)}); continue
+        if kind == "asset" and line.startswith("داده "):
+            obj["data"]=_value(line[len("داده "):]); continue
+    if not data.get("meta",{}).get("start_scene") and data.get("scenes"):
+        data["meta"]["start_scene"] = data["scenes"][0]["id"]
+    if not data.get("meta",{}).get("title"):
+        data["meta"]["title"] = "بازی MONN"
+    return GameProject(data)
+
+
+def load_monn(path):
+    return loads_monn(Path(path).read_text(encoding="utf-8"))
+, line)
+            if not match: raise GameValidationError("اثر پرچم MONN نامعتبر است: " + line)
             obj["effects"].append({"type":"flag","name":_value(match.group(1)),"value":_value(match.group(2))}); continue
+        if line.startswith("اثر ") and kind == "choice":
+            rest = line[len("اثر "):]
+            match = re.match(r'(.+?)\s+(.+?)\s+(add|set|subtract)\s+(.+)
+        if "=" in line:
+            key, raw = [part.strip() for part in line.split("=",1)]
+            value = _value(raw)
+            if key == "داده_ریشه": data.update(value); continue
+            if key == "جزئیات": obj.update(value); continue
+            if kind == "root":
+                meta_map={"پدیدآورنده":"author","مجوز":"license","پایان":"ending_scene","صحنه_منو":"menu_scene"}
+                data["meta"][meta_map.get(key,key)] = value
+            elif kind == "player":
+                if key == "جان": obj["health"]=value
+                elif key == "حداکثر_جان": obj["max_health"]=value
+                else: obj[key]=value
+            elif kind == "character":
+                mapping={"نام":"name","تصویر":"portrait","ویدیو":"video","صدا":"voice","مدل":"model",
+                         "شروع_کلیپ":"video_start","پایان_کلیپ":"video_end","دستور":"system_prompt",
+                         "مدل_هوش":"model","نشانی_API":"api_base","هوش_مصنوعی":"enabled"}
+                if key in ("ویژگی","حالت"): obj.setdefault("expressions",{})[value[0]]=value[1]
+                elif key in ("دستور","مدل_هوش","نشانی_API","هوش_مصنوعی"):
+                    ai=obj.setdefault("ai",{"enabled":False,"rules":[]});ai[mapping[key]]=value
+                else: obj[mapping.get(key,key)]=value
+            elif kind == "scene":
+                mapping={"روایت":"text","تصویر":"image","ویدیو":"video","شروع_کلیپ":"video_start",
+                         "پایان_کلیپ":"video_end","تکرار_کلیپ":"video_loop","موسیقی":"music",
+                         "مدل":"model","صدای_دکمه":"button_sound","جهان_فعال":"world_enabled"}
+                obj[mapping.get(key,key)]=value
+            elif kind == "choice":
+                if key == "شناسه": obj["id"]=value
+                elif key == "صدا": obj["sound"]=value
+            elif kind in ("world","world_player","sprite"):
+                mapping={"فعال":"enabled","عرض":"width","ارتفاع":"height","پس‌زمینه":"background","رنگ":"color","برخورد":"solid"}
+                obj[mapping.get(key,key)]=value
+            elif kind == "ui":
+                mapping={"منو_فعال":"menu_enabled","عنوان_منو":"menu_title","برچسب_شروع":"start_label",
+                         "برچسب_تنظیمات":"settings_label","پس‌زمینه_منو":"menu_background","موسیقی_منو":"background_music",
+                         "صدای_دکمه":"button_sound","نمایش_جان":"show_health","نمایش_کوله":"show_inventory",
+                         "نمایش_مأموریت":"show_quests"}
+                obj[mapping.get(key,key)]=value
+            elif kind == "asset":
+                mapping={"پدیدآورنده":"author","منبع":"source","مجوز":"license","یادداشت":"notes"}
+                obj[mapping.get(key,key)]=value
+            continue
+        if kind == "player" and line.startswith("ویژگی "):
+            name, value, rest = _quoted_pair(line[len("ویژگی "):].split("=",1)[0].strip()+" "+line.split("=",1)[1].strip())
+            obj.setdefault("stats",{})[name]=value; continue
+        if kind == "player" and line.startswith("آیتم "):
+            name, value, rest = _quoted_pair(line[len("آیتم "):].split("=",1)[0].strip()+" "+line.split("=",1)[1].strip())
+            obj.setdefault("inventory",[]).append({"name":name,"count":int(value)}); continue
+        if kind == "asset" and line.startswith("داده "):
+            obj["data"]=_value(line[len("داده "):]); continue
+    if not data.get("meta",{}).get("start_scene") and data.get("scenes"):
+        data["meta"]["start_scene"] = data["scenes"][0]["id"]
+    if not data.get("meta",{}).get("title"):
+        data["meta"]["title"] = "بازی MONN"
+    return GameProject(data)
+
+
+def load_monn(path):
+    return loads_monn(Path(path).read_text(encoding="utf-8"))
+, rest)
+            if match:
+                typ, name, op, value = match.groups()
+                obj["effects"].append({"type":_value(typ),"name":_value(name),"op":op,"value":_value(value)})
+                continue
+            raise GameValidationError("اثر MONN نامعتبر است: " + line)
         if "=" in line:
             key, raw = [part.strip() for part in line.split("=",1)]
             value = _value(raw)
