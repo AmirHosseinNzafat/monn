@@ -203,6 +203,9 @@ class GameProject:
                 asset = scene.get(asset_field)
                 if asset is not None:
                     self._validate_asset_ref(asset, asset_field)
+            for timing in ("video_start", "video_end"):
+                if timing in scene and _safe_number(scene[timing], timing) < 0:
+                    raise GameValidationError("{} نمی‌تواند منفی باشد".format(timing))
             dialogue = scene.get("dialogue", [])
             if not isinstance(dialogue, list):
                 raise GameValidationError("dialogue صحنه باید فهرست باشد")
@@ -213,6 +216,9 @@ class GameProject:
                 for media_field in ("portrait", "video", "voice"):
                     if line.get(media_field) is not None:
                         self._validate_asset_ref(line[media_field], media_field)
+                for timing in ("video_start", "video_end"):
+                    if timing in line and _safe_number(line[timing], timing) < 0:
+                        raise GameValidationError("{} دیالوگ نمی‌تواند منفی باشد".format(timing))
             choices = scene.get("choices", [])
             if not isinstance(choices, list):
                 raise GameValidationError("choices صحنه باید فهرست باشد")
@@ -261,6 +267,11 @@ class GameProject:
             for media_field in ("portrait", "video", "voice", "model"):
                 if character.get(media_field) is not None:
                     self._validate_asset_ref(character[media_field], media_field)
+            for timing in ("video_start", "video_end"):
+                if timing in character and _safe_number(character[timing], timing) < 0:
+                    raise GameValidationError("{} شخصیت نمی‌تواند منفی باشد".format(timing))
+            if "ai" in character and not isinstance(character["ai"], dict):
+                raise GameValidationError("تنظیمات AI شخصیت باید یک شیء باشد")
             expressions = character.get("expressions", {})
             if not isinstance(expressions, dict):
                 raise GameValidationError("expressions شخصیت باید شیء باشد")
@@ -275,6 +286,11 @@ class GameProject:
         world = self.data.get("world", {})
         if not isinstance(world, dict):
             raise GameValidationError("world باید یک شیء باشد")
+        for dimension in ("width", "height"):
+            if dimension in world:
+                size = _safe_number(world[dimension], "ابعاد جهان")
+                if size <= 0 or size > 16384:
+                    raise GameValidationError("ابعاد جهان باید بین ۱ تا ۱۶۳۸۴ باشد")
         sprites = world.get("sprites", [])
         if not isinstance(sprites, list):
             raise GameValidationError("world.sprites باید فهرست باشد")
@@ -289,9 +305,12 @@ class GameProject:
             for field in ("image", "model"):
                 if sprite.get(field) is not None:
                     self._validate_asset_ref(sprite[field], field)
-            for field in ("x", "y", "width", "height", "speed"):
+            for field in ("x", "y", "width", "height", "speed", "fps", "frames",
+                          "frame_width", "frame_height"):
                 if field in sprite:
                     _safe_number(sprite[field], "مختصات/اندازه شیء نقشه")
+            if sprite.get("width", 1) <= 0 or sprite.get("height", 1) <= 0:
+                raise GameValidationError("اندازه شیء نقشه باید مثبت باشد")
         for field in ("background", "tileset"):
             if world.get(field) is not None:
                 self._validate_asset_ref(world[field], field)
@@ -299,9 +318,19 @@ class GameProject:
             for field in ("image", "model"):
                 if world["player"].get(field) is not None:
                     self._validate_asset_ref(world["player"][field], "world player " + field)
+            for field in ("x", "y", "width", "height", "speed", "fps", "frames",
+                          "frame_width", "frame_height"):
+                if field in world["player"]:
+                    _safe_number(world["player"][field], "تنظیم بازیکن جهان")
         ui = self.data.get("ui", {})
         if not isinstance(ui, dict):
             raise GameValidationError("ui باید یک شیء باشد")
+        elements = ui.get("elements", [])
+        if not isinstance(elements, list):
+            raise GameValidationError("ui.elements باید فهرست باشد")
+        for element in elements:
+            if not isinstance(element, dict) or element.get("type") not in ("text", "button", "name_input"):
+                raise GameValidationError("عنصر رابط کاربری MONN نامعتبر است")
         for field in ("menu_background", "button_sound", "background_music"):
             if ui.get(field) is not None:
                 self._validate_asset_ref(ui[field], field)
