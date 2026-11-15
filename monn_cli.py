@@ -62,7 +62,8 @@ def main():
     parser = argparse.ArgumentParser(
         description="MonnLang: اجرای برنامه، بازی داستانی یا خروجی وب"
     )
-    parser.add_argument("file", help="مسیر فایل .monn یا پروژه JSON بازی")
+    parser.add_argument("file", nargs="?", help="مسیر فایل .monn یا پروژه JSON بازی")
+    parser.add_argument("--studio", action="store_true", help="اجرای محیط گرافیکی Monn Studio")
     parser.add_argument("--web", action="store_true", help="ساخت خروجی مستقل HTML")
     parser.add_argument("--game", action="store_true", help="اجرای فایل پروژه بازی JSON")
     parser.add_argument("-o", "--output", help="مسیر فایل خروجی")
@@ -70,6 +71,12 @@ def main():
     parser.add_argument("--load", dest="load_path", help="بارگذاری فایل ذخیره بازی")
     args = parser.parse_args()
     try:
+        if args.studio:
+            from monn.studio import main as studio_main
+            studio_main()
+            return 0
+        if not args.file:
+            parser.error("مسیر فایل را وارد کن یا از --studio استفاده کن")
         if args.game:
             project = load_project(args.file)
             if args.web:
