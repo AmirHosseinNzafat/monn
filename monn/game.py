@@ -368,7 +368,7 @@ class GameProject:
             "data:application/octet-stream;base64,"
         ))
         if (parsed.scheme not in ("", "http", "https") and not data_asset) or value.startswith("//"):
-            raise GameValidationError("دارایی باید مسیر نسبی، HTTP(S) یا داده تصویری/صوتی مجاز باشد")
+            raise GameValidationError("دارایی باید مسیر نسبی، HTTP(S) یا دادهٔ تصویری، صوتی، ویدیویی یا مدل مجاز باشد")
 
     @staticmethod
     def _validate_conditions(conditions):
