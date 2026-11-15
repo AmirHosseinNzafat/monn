@@ -199,7 +199,7 @@ class GameProject:
             scene = copy.deepcopy(raw)
             scene["title"] = str(scene.get("title") or scene_id)
             scene["text"] = str(scene.get("text") or "")
-            for asset_field in ("image", "music", "video", "button_sound"):
+            for asset_field in ("image", "music", "video", "model", "button_sound"):
                 asset = scene.get(asset_field)
                 if asset is not None:
                     self._validate_asset_ref(asset, asset_field)
@@ -229,6 +229,8 @@ class GameProject:
                 target = choice.get("target")
                 if target is not None:
                     _require_text(target, "مقصد انتخاب")
+                if choice.get("sound") is not None:
+                    self._validate_asset_ref(choice["sound"], "choice sound")
                 if not isinstance(choice.get("effects", []), list):
                     raise GameValidationError("effects باید فهرست باشد")
                 if not isinstance(choice.get("conditions", []), list):
@@ -293,6 +295,8 @@ class GameProject:
         for field in ("background", "tileset"):
             if world.get(field) is not None:
                 self._validate_asset_ref(world[field], field)
+        if isinstance(world.get("player"), dict) and world["player"].get("image") is not None:
+            self._validate_asset_ref(world["player"]["image"], "world player image")
         ui = self.data.get("ui", {})
         if not isinstance(ui, dict):
             raise GameValidationError("ui باید یک شیء باشد")
