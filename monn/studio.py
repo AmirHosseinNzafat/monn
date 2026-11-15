@@ -1,7 +1,6 @@
 """Local web-based Monn Studio authoring environment."""
 import argparse
 import json
-import mimetypes
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
@@ -58,7 +57,7 @@ class StudioHandler(BaseHTTPRequestHandler):
 
     @staticmethod
     def _filename(title):
-        safe = "".join(ch for ch in title if ch.isalnum() or ch in "-_ ").strip().replace(" ", "-")
+        safe = "".join(ch for ch in title if ch.isascii() and (ch.isalnum() or ch in "-_ ")).strip().replace(" ", "-")
         return (safe[:60] or "monn-game") + ".html"
 
     def _json(self, status, data):
