@@ -51,18 +51,45 @@ class NitroAgent:
             "scene": "صحنه؛ یک بخش مستقل از بازی",
             "choice": "انتخاب؛ مسیر یا کنش بازیکن برای رفتن به صحنه دیگر",
             "character": "شخصیت؛ بازیگر یا NPC دارای نام و نقش",
+            "npc": "شخصیت غیرقابل‌بازی؛ موجودیت دارای رفتار در جهان",
             "branch": "شاخه؛ مسیر جایگزین در روایت",
             "quest": "مأموریت؛ هدف چندمرحله‌ای بازیکن",
             "stat": "ویژگی؛ مقدار عددی مانند جان، امتیاز یا سکه",
             "flag": "پرچم؛ وضعیت روشن/خاموش یک رویداد",
-            "asset": "دارایی؛ تصویر، صدا، ویدیو یا مدل",
+            "inventory": "کوله‌پشتی؛ فهرست آیتم‌های بازیکن",
+            "asset": "دارایی؛ تصویر، صدا، ویدیو، فونت یا مدل",
             "sprite": "اسپرایت؛ تصویر دوبعدی یک شیء یا شخصیت",
+            "tilemap": "نقشه کاشی‌ای؛ چیدمان مرحله با قطعه‌های تکرارشونده",
+            "camera": "دوربین؛ نمای دید بازیکن یا قاب صحنه",
             "collision": "برخورد؛ تشخیص تماس اجسام در جهان بازی",
+            "rigid_body": "جسم صلب؛ شیء دارای جرم و واکنش فیزیکی",
+            "raycast": "پرتوکاوی؛ بررسی برخورد در امتداد یک خط",
+            "projectile": "پرتابه؛ گلوله یا شیء پرتاب‌شده",
+            "weapon": "سلاح؛ ابزار حمله با نرخ شلیک و آسیب",
+            "damage": "آسیب؛ کاهش جان هدف",
+            "health": "جان؛ میزان سلامت بازیکن یا دشمن",
+            "enemy": "دشمن؛ عامل مخالف با جان و رفتار",
+            "pathfinding": "مسیریابی؛ پیدا کردن مسیر حرکت عامل",
+            "animation": "انیمیشن؛ تغییر حالت یا حرکت در طول زمان",
+            "keyframe": "فریم کلیدی؛ نقطه تعیین‌شده در انیمیشن",
+            "material": "متریال؛ ویژگی ظاهری سطح مدل",
+            "texture": "بافت؛ تصویر پوشاننده سطح مدل",
+            "lighting": "نورپردازی؛ نور و سایه صحنه",
+            "scene_graph": "درخت صحنه؛ ساختار والد و فرزند اشیا",
+            "prefab": "نمونه آماده؛ الگوی قابل استفاده مجدد از اشیا",
+            "input": "ورودی؛ فرمان صفحه‌کلید، ماوس، کنترلر یا لمس",
+            "audio": "صدا؛ موسیقی، افکت و گفتار",
+            "save": "ذخیره؛ نگهداری پیشرفت بازی",
+            "build": "خروجی؛ بسته قابل اجرا یا انتشار بازی",
+            "plugin": "افزونه؛ قابلیت مستقل قابل اضافه شدن",
             "3d_model": "مدل سه‌بعدی؛ دارایی هندسی قابل نمایش در صحنه",
             "ui": "رابط کاربری؛ منو، دکمه، متن و ورودی",
             "timeline": "تایم‌لاین؛ زمان‌بندی ویدیو، صدا و انیمیشن",
             "multiplayer": "چندنفره؛ همگام‌سازی بازی میان چند دستگاه",
             "physics": "فیزیک؛ حرکت، نیرو، جرم و برخورد اجسام",
+            "fps": "نرخ فریم؛ تعداد فریم‌های نمایش در هر ثانیه",
+            "third_person": "سوم‌شخص؛ دوربین پشت یا کنار شخصیت",
+            "first_person": "اول‌شخص؛ دوربین از دید چشم بازیکن",
         }
 
     def _system_prompt(self):
@@ -80,7 +107,9 @@ class NitroAgent:
             "add_character {id,name,role}; set_player_stat {name,value}; "
             "add_quest {id,title}; add_world_sprite {id,x,y,width,height,solid}; "
             "add_ui_element {id,element_type,text,x,y,width,height}; "
-            "add_dialogue {scene_id,character,text}; set_scene_media {scene_id,field,value}. "
+            "add_dialogue {scene_id,character,text}; set_scene_media {scene_id,field,value}; "
+            "add_world3d_object {id,shape,position,scale,color,solid,role,model,health}; "
+            "set_world3d_player {position,speed,sensitivity}; set_world3d_gravity {value}. "
             "شناسه‌ها باید انگلیسی ساده و یکتا باشند. مقصد انتخاب باید شناسه صحنه موجود "
             "یا صحنه‌ای باشد که در همین پیشنهاد ساخته می‌شود. "
             "اگر اطلاعات کافی نیست، operations را خالی بگذار و در summary سؤال روشن بپرس. "
@@ -147,7 +176,7 @@ class NitroAgent:
         characters = candidate.setdefault("characters", [])
         scene_ids = {scene.get("id") for scene in scenes}
         character_ids = {character.get("id") for character in characters}
-        allowed = {"set_title", "set_scene_text", "add_scene", "add_choice", "add_character", "set_player_stat", "add_quest", "add_dialogue", "add_ui_element", "add_world_sprite", "set_scene_media"}
+        allowed = {"set_title", "set_scene_text", "add_scene", "add_choice", "add_character", "set_player_stat", "add_quest", "add_dialogue", "add_ui_element", "add_world_sprite", "set_scene_media", "add_world3d_object", "set_world3d_player", "set_world3d_gravity"}
         for index, operation in enumerate(operations):
             if not isinstance(operation, dict):
                 raise NitroError("تغییر شماره {} معتبر نیست.".format(index + 1))
@@ -243,6 +272,77 @@ class NitroAgent:
                     sprite[field] = value
                 sprites.append(sprite)
                 world["enabled"] = True
+            elif kind == "add_world3d_object":
+                object_id = operation.get("id")
+                world = candidate.setdefault("world3d", {"enabled": True, "objects": []})
+                objects = world.setdefault("objects", [])
+                if not isinstance(object_id, str) or not object_id.isascii() or not object_id.replace("_", "").replace("-", "").isalnum() or any(item.get("id") == object_id for item in objects):
+                    raise NitroError("شناسه شیء سه‌بعدی باید انگلیسی و یکتا باشد.")
+                shape = operation.get("shape", "box")
+                role = operation.get("role", "decoration")
+                if shape not in ("box", "sphere", "model") or role not in ("decoration", "obstacle", "enemy", "target"):
+                    raise NitroError("شکل یا نقش شیء سه‌بعدی معتبر نیست.")
+                def vector(field, default, positive=False):
+                    value = operation.get(field, default)
+                    if not isinstance(value, (list, tuple)) or len(value) != 3:
+                        raise NitroError("مقدار {} باید سه عدد داشته باشد.".format(field))
+                    if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or (positive and v <= 0) for v in value):
+                        raise NitroError("مقادیر {} معتبر نیستند.".format(field))
+                    return [float(v) for v in value]
+                import math
+                color = operation.get("color", "#6b91b8")
+                if not isinstance(color, str) or len(color) != 7 or not color.startswith("#"):
+                    raise NitroError("رنگ شیء سه‌بعدی باید به صورت #RRGGBB باشد.")
+                try:
+                    int(color[1:], 16)
+                except ValueError as exc:
+                    raise NitroError("کد رنگ شیء سه‌بعدی معتبر نیست.") from exc
+                entry = {
+                    "id": object_id, "shape": shape,
+                    "position": vector("position", [0, 0, 0]),
+                    "scale": vector("scale", [1, 1, 1], positive=True),
+                    "color": color, "solid": bool(operation.get("solid", role == "obstacle")),
+                    "role": role,
+                }
+                if shape == "model":
+                    model = operation.get("model")
+                    if not isinstance(model, str) or not model.strip() or "://" in model or ".." in model.split("/"):
+                        raise NitroError("مدل باید مسیر فایل محلی معتبر باشد.")
+                    entry["model"] = model
+                if role in ("enemy", "target"):
+                    health = operation.get("health", 3)
+                    if isinstance(health, bool) or not isinstance(health, int) or not 1 <= health <= 100000:
+                        raise NitroError("جان دشمن یا هدف باید عددی بین ۱ تا ۱۰۰۰۰۰ باشد.")
+                    entry["health"] = health
+                objects.append(entry)
+                world["enabled"] = True
+                from .engine3d import validate_world3d
+                validate_world3d(candidate)
+            elif kind == "set_world3d_player":
+                world = candidate.setdefault("world3d", {"enabled": True, "objects": []})
+                player = world.setdefault("player", {})
+                position = operation.get("position", player.get("position", [0, -8, 1.7]))
+                if not isinstance(position, (list, tuple)) or len(position) != 3 or any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in position):
+                    raise NitroError("موقعیت بازیکن سه‌بعدی باید سه عدد معتبر داشته باشد.")
+                player["position"] = [float(v) for v in position]
+                for field, low, high in (("speed", 0.5, 40), ("sensitivity", 0.02, 1)):
+                    if field in operation:
+                        value = operation[field]
+                        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not low <= value <= high:
+                            raise NitroError("مقدار {} خارج از محدوده مجاز است.".format(field))
+                        player[field] = float(value)
+                world["enabled"] = True
+                from .engine3d import validate_world3d
+                validate_world3d(candidate)
+            elif kind == "set_world3d_gravity":
+                value = operation.get("value")
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 <= value <= 100:
+                    raise NitroError("گرانش باید عددی بین صفر تا ۱۰۰ باشد.")
+                world = candidate.setdefault("world3d", {"enabled": True, "objects": []})
+                world["gravity"] = float(value)
+                world["enabled"] = True
+                from .engine3d import validate_world3d
+                validate_world3d(candidate)
             elif kind == "set_scene_media":
                 scene = next((item for item in scenes if item.get("id") == operation.get("scene_id")), None)
                 field, value = operation.get("field"), operation.get("value")
