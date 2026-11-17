@@ -171,7 +171,7 @@ def desktop_main():
         import webview
     except ImportError as exc:
         raise SystemExit(
-            "برای اجرای نسخه دسکتاپ، وابستگی‌ها را نصب کن: py -m pip install -e .[desktop]"
+            'برای اجرای نسخه دسکتاپ، وابستگی‌ها را نصب کن: py -m pip install -e ".[desktop]"'
         ) from exc
     server = ThreadingHTTPServer(("127.0.0.1", 0), StudioHandler)
     import threading
