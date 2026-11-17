@@ -17,7 +17,7 @@ NITRO_PROPOSALS = {}
 
 
 class StudioHandler(BaseHTTPRequestHandler):
-    server_version = "MonnStudio/1.4.3"
+    server_version = "MonnStudio/1.4.4"
 
     def _token(self):
         header = self.headers.get("Authorization", "")
@@ -43,7 +43,7 @@ class StudioHandler(BaseHTTPRequestHandler):
             self.wfile.write(body)
             return
         if path == "/health":
-            self._json(200, {"ok": True, "studio": "Monn Studio", "version": "1.4.3"})
+            self._json(200, {"ok": True, "studio": "Monn Studio", "version": "1.4.4"})
             return
         if path == "/api/auth/me":
             self._json(200, {"ok": True, "username": self._user()})
