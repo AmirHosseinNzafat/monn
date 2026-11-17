@@ -154,5 +154,36 @@ def main():
         server.server_close()
 
 
+
+def desktop_main():
+    """Launch Monn Studio in a native Windows desktop window (pywebview)."""
+    try:
+        import webview
+    except ImportError as exc:
+        raise SystemExit(
+            "برای اجرای نسخه دسکتاپ، وابستگی‌ها را نصب کن: py -m pip install -e ".[desktop]""
+        ) from exc
+    server = ThreadingHTTPServer(("127.0.0.1", 0), StudioHandler)
+    import threading
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    host, port = server.server_address
+    url = "http://{}:{}/".format(host, port)
+    print("Monn Studio Desktop: " + url)
+    try:
+        webview.create_window(
+            "Monn Studio — محیط بازی‌سازی",
+            url,
+            width=1440,
+            height=920,
+            min_size=(1024, 700),
+            background_color="#090d18",
+        )
+        webview.start()
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
 if __name__ == "__main__":
     main()
