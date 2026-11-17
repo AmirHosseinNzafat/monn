@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "monn-lang"
-version = "1.4.2"
+version = "1.4.3"
 description = "Persian-first programming language, visual game studio and narrative game engine"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -15,10 +15,12 @@ authors = [{name = "AmirHosseinNzafat"}]
 images = ["Pillow>=10.0"]
 3d = ["trimesh>=4.0", "matplotlib>=3.8"]
 all = ["Pillow>=10.0", "trimesh>=4.0", "matplotlib>=3.8"]
+desktop = ["pywebview>=5.0", "pyinstaller>=6.0", "Pillow>=10.0"]
 
 [project.scripts]
 monn = "monn_cli:main"
 monn-studio = "monn.studio:main"
+monn-studio-desktop = "monn.studio:desktop_main"
 
 [tool.setuptools.package-data]
 monn = ["studio/*.html"]
