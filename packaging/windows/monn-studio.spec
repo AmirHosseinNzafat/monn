@@ -7,7 +7,7 @@ datas = [(str(ROOT / "monn" / "studio" / "index.html"), "monn/studio")]
 hiddenimports = collect_submodules("webview")
 
 a = Analysis(
-    [str(ROOT / "monn" / "studio.py")],
+    [str(ROOT / "monn_desktop.py")],
     pathex=[str(ROOT)],
     binaries=[],
     datas=datas,
