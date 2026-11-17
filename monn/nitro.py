@@ -8,6 +8,8 @@ import copy
 import hashlib
 import json
 import secrets
+import ipaddress
+from urllib.parse import urlsplit
 import urllib.error
 import urllib.request
 
@@ -29,7 +31,18 @@ class NitroAgent:
 
     def __init__(self, endpoint=None, model=None, timeout=120):
         self.endpoint = (endpoint or self.DEFAULT_URL).strip()
+        parsed = urlsplit(self.endpoint)
+        host = (parsed.hostname or "").lower()
+        is_loopback = host == "localhost"
+        try:
+            is_loopback = is_loopback or ipaddress.ip_address(host).is_loopback
+        except ValueError:
+            pass
+        if parsed.scheme != "http" or not is_loopback or not parsed.port or not parsed.path.startswith("/"):
+            raise NitroError("نیترو در این نسخه فقط به سرویس HTTP محلی روی localhost یا loopback وصل می‌شود.")
         self.model = (model or self.DEFAULT_MODEL).strip()
+        if not self.model or len(self.model) > 120:
+            raise NitroError("نام مدل محلی معتبر نیست.")
         self.timeout = max(5, min(int(timeout), 300))
 
     @staticmethod
