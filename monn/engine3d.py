@@ -64,6 +64,12 @@ def validate_world3d(project):
         except ValueError as exc:
             raise Monn3DError("کد رنگ معتبر نیست.") from exc
         entry["color"] = color
+        if entry["role"] == "enemy":
+            for field, default, low, high in (("health", 3, 1, 100000), ("speed", 2.2, 0.0, 20.0), ("damage", 8, 0, 10000)):
+                value = item.get(field, default)
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not low <= value <= high:
+                    raise Monn3DError("مقدار {} برای دشمن معتبر نیست.".format(field))
+                entry[field] = int(value) if field in ("health", "damage") else float(value)
         if shape == "model":
             model = item.get("model")
             if not isinstance(model, str) or not model.strip() or "://" in model or ".." in Path(model).parts:
@@ -188,7 +194,7 @@ def run_project(project, project_path=None):
                     half = [value * 0.5 for value in item["scale"]]
                     self.obstacles.append({"center": tuple(center), "half": tuple(half)})
                 if item["role"] in ("enemy", "target"):
-                    self.enemies.append({"node": node, "health": int(item.get("health", 3)), "alive": True})
+                    self.enemies.append({"node": node, "health": int(item.get("health", 3)), "alive": True, "role": item["role"], "speed": float(item.get("speed", 2.2)), "damage": int(item.get("damage", 8)), "attack_timer": 0.0})
 
         def _capture_mouse(self):
             if not self.win:
@@ -260,6 +266,23 @@ def run_project(project, project_path=None):
                 self.vertical_velocity = 0.0
             if not self._blocked(candidate):
                 self.camera.setPos(candidate)
+            player_position = self.camera.getPos()
+            for enemy in self.enemies:
+                if not enemy["alive"] or enemy["role"] != "enemy":
+                    continue
+                enemy_position = enemy["node"].getPos()
+                toward_player = player_position - enemy_position
+                toward_player.setZ(0)
+                distance = toward_player.length()
+                if distance > 1.45:
+                    toward_player.normalize()
+                    enemy["node"].setPos(enemy_position + toward_player * enemy["speed"] * dt)
+                    enemy["node"].lookAt(player_position)
+                else:
+                    enemy["attack_timer"] -= dt
+                    if enemy["attack_timer"] <= 0:
+                        self.health = max(0, self.health - enemy["damage"])
+                        enemy["attack_timer"] = 1.25
             for shot in list(self.projectiles):
                 shot["life"] -= dt
                 shot["node"].setPos(shot["node"].getPos() + shot["direction"] * 28 * dt)
