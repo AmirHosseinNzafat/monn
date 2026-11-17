@@ -8,12 +8,29 @@ from urllib.parse import urlparse
 from .game import GameProject
 from .game_dsl import dumps_monn, loads_monn
 from .web_game import compile_game_to_html
+from .accounts import AccountError, LocalAccountStore
+from .nitro import NitroAgent, NitroError
 
 STUDIO_DIR = Path(__file__).with_name("studio")
+ACCOUNTS = LocalAccountStore()
+NITRO_PROPOSALS = {}
 
 
 class StudioHandler(BaseHTTPRequestHandler):
-    server_version = "MonnStudio/1.0"
+    server_version = "MonnStudio/1.4.3"
+
+    def _token(self):
+        header = self.headers.get("Authorization", "")
+        return header[7:].strip() if header.startswith("Bearer ") else ""
+
+    def _user(self):
+        return ACCOUNTS.authenticate(self._token())
+
+    def _require_user(self):
+        user = self._user()
+        if not user:
+            self._json(401, {"ok": False, "error": "برای استفاده از این قابلیت ابتدا وارد حساب محلی شو."})
+        return user
 
     def do_GET(self):
         path = urlparse(self.path).path
@@ -32,7 +49,7 @@ class StudioHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
-        if path not in ("/api/build", "/api/source", "/api/parse"):
+        if path not in ("/api/build", "/api/source", "/api/parse", "/api/auth/register", "/api/auth/login", "/api/auth/logout", "/api/nitro/propose", "/api/nitro/approve"):
             self.send_error(404)
             return
         try:
@@ -41,6 +58,37 @@ class StudioHandler(BaseHTTPRequestHandler):
                 raise ValueError("حجم پروژه باید کمتر از ۴۸ مگابایت باشد.")
             raw = self.rfile.read(length)
             payload = json.loads(raw.decode("utf-8"))
+            if path in ("/api/auth/register", "/api/auth/login"):
+                if path.endswith("register"):
+                    result = ACCOUNTS.register(payload.get("username"), payload.get("password"))
+                else:
+                    result = ACCOUNTS.login(payload.get("username"), payload.get("password"))
+                self._json(200, {"ok": True, **result})
+                return
+            if path == "/api/auth/logout":
+                ACCOUNTS.logout(self._token())
+                self._json(200, {"ok": True})
+                return
+            if path == "/api/nitro/propose":
+                if not self._require_user():
+                    return
+                proposal = NitroAgent(payload.get("endpoint"), payload.get("model")).propose(
+                    payload.get("project"), payload.get("prompt"))
+                NITRO_PROPOSALS[proposal["id"]] = {"user": self._user(), "proposal": proposal}
+                self._json(200, {"ok": True, "id": proposal["id"], "summary": proposal["summary"],
+                                 "operations": proposal["operations"], "project": proposal["project"],
+                                 "before": proposal["before"], "after": proposal["after"]})
+                return
+            if path == "/api/nitro/approve":
+                if not self._require_user():
+                    return
+                item = NITRO_PROPOSALS.pop(payload.get("id"), None)
+                if not item or item["user"] != self._user():
+                    raise NitroError("پیشنهاد پیدا نشد یا منقضی شده است؛ دوباره از نیترو درخواست کن.")
+                from .nitro import NitroAgent
+                updated = NitroAgent.approve(item["proposal"], payload.get("project"))
+                self._json(200, {"ok": True, "project": updated})
+                return
             if path == "/api/parse":
                 project = loads_monn(payload.get("source", ""))
                 self._json(200, project.data)
@@ -61,7 +109,7 @@ class StudioHandler(BaseHTTPRequestHandler):
             self.send_header("X-Content-Type-Options", "nosniff")
             self.end_headers()
             self.wfile.write(body)
-        except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        except (AccountError, NitroError) as exc:\n            self._json(400, {"ok": False, "error": str(exc)})\n        except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
             self._json(400, {"ok": False, "error": str(exc)})
         except Exception as exc:
             self._json(422, {"ok": False, "error": str(exc)})
