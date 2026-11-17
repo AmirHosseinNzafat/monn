@@ -175,7 +175,8 @@ class MonnStudioTests(unittest.TestCase):
         html = html_path.read_text(encoding="utf-8")
         for feature in ("openTimelineEditor", "addTimelineClip", "selectTimelineClip",
                         "saveTimelineEditor", "openUIDesigner", "addDesignerElement",
-                        "wireDesignerItems", "applyDesignerInspector", "designer-canvas"):
+                        "wireDesignerItems", "wireDesignerPalette", "dataTransfer.setData",
+                        "applyDesignerInspector", "designer-canvas", "function preview()"):
             self.assertIn(feature, html)
 
     def test_compiled_runtime_runs_timeline_and_renders_designer_images(self):
