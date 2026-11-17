@@ -1,0 +1,80 @@
+{
+  "meta": {
+    "id": "monn-3d-action-demo",
+    "title": "Monn 3D — میدان تمرین",
+    "start_scene": "training"
+  },
+  "player": {
+    "health": 100,
+    "max_health": 100,
+    "stats": {"امتیاز": 0},
+    "inventory": []
+  },
+  "scenes": [
+    {
+      "id": "training",
+      "title": "میدان تمرین",
+      "text": "با WASD حرکت کن، با ماوس اطراف را ببین و با کلیک چپ به هدف‌ها شلیک کن.",
+      "choices": []
+    }
+  ],
+  "world3d": {
+    "enabled": true,
+    "title": "میدان تمرین",
+    "gravity": 9.81,
+    "player": {
+      "position": [0, -9, 1.7],
+      "speed": 8,
+      "sensitivity": 0.12
+    },
+    "objects": [
+      {
+        "id": "cover_left",
+        "shape": "box",
+        "position": [-4, 1, 1],
+        "scale": [2, 2, 2],
+        "color": "#52677d",
+        "solid": true,
+        "role": "obstacle"
+      },
+      {
+        "id": "cover_right",
+        "shape": "box",
+        "position": [4, 3, 1],
+        "scale": [2, 2, 2],
+        "color": "#52677d",
+        "solid": true,
+        "role": "obstacle"
+      },
+      {
+        "id": "target_red",
+        "shape": "box",
+        "position": [0, 8, 1],
+        "scale": [1.2, 1.2, 2],
+        "color": "#df4657",
+        "solid": true,
+        "role": "enemy",
+        "health": 3
+      },
+      {
+        "id": "target_blue",
+        "shape": "sphere",
+        "position": [5, 13, 1.2],
+        "scale": [1.5, 1.5, 1.5],
+        "color": "#3b9cdb",
+        "solid": false,
+        "role": "target",
+        "health": 2
+      },
+      {
+        "id": "pillar",
+        "shape": "box",
+        "position": [-7, 10, 2],
+        "scale": [1, 1, 4],
+        "color": "#8a7cae",
+        "solid": true,
+        "role": "obstacle"
+      }
+    ]
+  }
+}
