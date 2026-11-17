@@ -1,15 +1,17 @@
 # -*- mode: python ; coding: utf-8 -*-
 from pathlib import Path
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_all
+
+webview_datas, webview_binaries, webview_hiddenimports = collect_all("webview")
 
 ROOT = Path(SPECPATH).resolve().parents[1]
-datas = [(str(ROOT / "monn" / "studio" / "index.html"), "monn/studio")]
-hiddenimports = collect_submodules("webview")
+datas = [(str(ROOT / "monn" / "studio" / "index.html"), "monn/studio")] + webview_datas
+hiddenimports = webview_hiddenimports
 
 a = Analysis(
     [str(ROOT / "monn_desktop.py")],
     pathex=[str(ROOT)],
-    binaries=[],
+    binaries=webview_binaries,
     datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],
