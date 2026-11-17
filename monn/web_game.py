@@ -252,7 +252,7 @@ function renderCustomUI() {
   });
 }
 let timelineSceneId=null,timelineStartedAt=0,timelineTimers=[],timelineAudio=[];
-function stopSceneTimeline(){timelineTimers.forEach(clearTimeout);timelineTimers=[];timelineAudio.forEach(a=>{try{a.pause();a.src=""}catch(_){}});timelineAudio=[];timelineSceneId=null}
+function stopSceneTimeline(){timelineTimers.forEach(clearTimeout);timelineTimers=[];timelineAudio.forEach(a=>{try{a.pause();a.src=""}catch(_){}});timelineAudio=[];const sceneVideo=$("scene-video");if(sceneVideo)sceneVideo.pause();timelineSceneId=null}
 function startSceneTimeline(scene){
   if(timelineSceneId===scene?.id)return;
   stopSceneTimeline();timelineSceneId=scene?.id||null;
