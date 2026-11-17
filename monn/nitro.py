@@ -7,6 +7,7 @@ explicit approval request before returning the edited project.
 import copy
 import hashlib
 import json
+import math
 import secrets
 import ipaddress
 from urllib.parse import urlsplit
@@ -289,7 +290,6 @@ class NitroAgent:
                     if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or (positive and v <= 0) for v in value):
                         raise NitroError("مقادیر {} معتبر نیستند.".format(field))
                     return [float(v) for v in value]
-                import math
                 color = operation.get("color", "#6b91b8")
                 if not isinstance(color, str) or len(color) != 7 or not color.startswith("#"):
                     raise NitroError("رنگ شیء سه‌بعدی باید به صورت #RRGGBB باشد.")
