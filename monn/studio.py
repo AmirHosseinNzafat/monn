@@ -43,7 +43,15 @@ class StudioHandler(BaseHTTPRequestHandler):
             self.wfile.write(body)
             return
         if path == "/health":
-            self._json(200, {"ok": True, "studio": "Monn Studio"})
+            self._json(200, {"ok": True, "studio": "Monn Studio", "version": "1.4.3"})
+            return
+        if path == "/api/auth/me":
+            self._json(200, {"ok": True, "username": self._user()})
+            return
+        if path == "/api/nitro/status":
+            self._json(200, {"ok": True, "provider": "ollama-local",
+                             "default_model": NitroAgent.DEFAULT_MODEL,
+                             "endpoint": NitroAgent.DEFAULT_URL, "account_required": True})
             return
         self.send_error(404)
 
@@ -109,7 +117,9 @@ class StudioHandler(BaseHTTPRequestHandler):
             self.send_header("X-Content-Type-Options", "nosniff")
             self.end_headers()
             self.wfile.write(body)
-        except (AccountError, NitroError) as exc:\n            self._json(400, {"ok": False, "error": str(exc)})\n        except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        except (AccountError, NitroError) as exc:
+            self._json(400, {"ok": False, "error": str(exc)})
+        except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
             self._json(400, {"ok": False, "error": str(exc)})
         except Exception as exc:
             self._json(422, {"ok": False, "error": str(exc)})
@@ -161,7 +171,7 @@ def desktop_main():
         import webview
     except ImportError as exc:
         raise SystemExit(
-            "برای اجرای نسخه دسکتاپ، وابستگی‌ها را نصب کن: py -m pip install -e ".[desktop]""
+            "برای اجرای نسخه دسکتاپ، وابستگی‌ها را نصب کن: py -m pip install -e .[desktop]"
         ) from exc
     server = ThreadingHTTPServer(("127.0.0.1", 0), StudioHandler)
     import threading
