@@ -62,7 +62,7 @@ class NitroSafetyTests(unittest.TestCase):
             {"type": "set_player_stat", "name": "سکه", "value": 50},
             {"type": "add_quest", "id": "find_key", "title": "پیدا کردن کلید"},
             {"type": "add_dialogue", "scene_id": "start", "character": "guide", "text": "به جنگل خوش آمدی"},
-            {"type": "add_ui_element", "id": "welcome", "type": "panel", "text": "سلام"},
+            {"type": "add_ui_element", "id": "welcome", "element_type": "panel", "text": "سلام"},
             {"type": "add_world_sprite", "id": "tree", "x": 20, "y": 30, "width": 50, "height": 80, "solid": True},
         ])
         self.assertEqual(updated["player"]["stats"]["سکه"], 50)
