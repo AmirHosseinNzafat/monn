@@ -163,6 +163,39 @@ class MonnStudioTests(unittest.TestCase):
         restored = loads_monn(dumps_monn(original))
         self.assertEqual(restored.data, original.data)
 
+
+    def test_studio_has_visual_timeline_and_drag_ui_designer(self):
+        html_path = Path(__file__).parent.parent / "monn" / "studio" / "index.html"
+        html = html_path.read_text(encoding="utf-8")
+        for feature in ("openTimelineEditor", "addTimelineClip", "selectTimelineClip",
+                        "saveTimelineEditor", "openUIDesigner", "addDesignerElement",
+                        "wireDesignerItems", "applyDesignerInspector", "designer-canvas"):
+            self.assertIn(feature, html)
+
+    def test_compiled_runtime_runs_timeline_and_renders_designer_images(self):
+        project = sample()
+        project["scenes"][0]["timeline"] = {
+            "duration": 12, "fps": 30,
+            "tracks": [
+                {"id": "audio", "name": "صدا", "type": "audio",
+                 "clips": [{"id": "a1", "src": "assets/music.ogg", "start": 1,
+                            "duration": 4, "in": 0, "out": 4}]},
+                {"id": "animation", "name": "حرکت", "type": "animation",
+                 "clips": [{"id": "m1", "target": "title", "property": "opacity",
+                            "start": 0, "duration": 2, "from": 0, "to": 1}]},
+            ],
+        }
+        project["ui"] = {"elements": [
+            {"id": "title", "type": "text", "text": "عنوان", "x": 5, "y": 5,
+             "width": 30, "height": 10},
+            {"id": "logo", "type": "image", "src": "assets/logo.png", "x": 2, "y": 2,
+             "width": 10, "height": 10},
+        ]}
+        html = compile_game_to_html(GameProject(project))
+        for feature in ("startSceneTimeline", "timelineAudio", "data-ui-id",
+                        'el.type==="image"', "scene.timeline"):
+            self.assertIn(feature, html)
+
     def test_compiled_browser_runtime_javascript_syntax_when_node_is_available(self):
         node = shutil.which("node")
         if not node:
