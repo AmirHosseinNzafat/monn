@@ -77,7 +77,10 @@ class NitroAgent:
             "فقط از عملیات مجاز استفاده کن: "
             "set_title {value}; set_scene_text {scene_id,value}; "
             "add_scene {id,title,text}; add_choice {scene_id,id,text,target}; "
-            "add_character {id,name,role}. "
+            "add_character {id,name,role}; set_player_stat {name,value}; "
+            "add_quest {id,title}; add_world_sprite {id,x,y,width,height,solid}; "
+            "add_ui_element {id,type,text,x,y,width,height}; "
+            "add_dialogue {scene_id,character,text}; set_scene_media {scene_id,field,value}. "
             "شناسه‌ها باید انگلیسی ساده و یکتا باشند. مقصد انتخاب باید شناسه صحنه موجود "
             "یا صحنه‌ای باشد که در همین پیشنهاد ساخته می‌شود. "
             "اگر اطلاعات کافی نیست، operations را خالی بگذار و در summary سؤال روشن بپرس. "
@@ -144,7 +147,7 @@ class NitroAgent:
         characters = candidate.setdefault("characters", [])
         scene_ids = {scene.get("id") for scene in scenes}
         character_ids = {character.get("id") for character in characters}
-        allowed = {"set_title", "set_scene_text", "add_scene", "add_choice", "add_character"}
+        allowed = {"set_title", "set_scene_text", "add_scene", "add_choice", "add_character", "set_player_stat", "add_quest", "add_dialogue", "add_ui_element", "add_world_sprite", "set_scene_media"}
         for index, operation in enumerate(operations):
             if not isinstance(operation, dict):
                 raise NitroError("تغییر شماره {} معتبر نیست.".format(index + 1))
@@ -192,6 +195,60 @@ class NitroAgent:
                     raise NitroError("نام یا نقش شخصیت معتبر نیست.")
                 characters.append({"id": character_id, "name": name.strip(), "role": role})
                 character_ids.add(character_id)
+            elif kind == "set_player_stat":
+                name, value = operation.get("name"), operation.get("value")
+                if not isinstance(name, str) or not name.strip() or len(name) > 80 or isinstance(value, bool) or not isinstance(value, (int, float)):
+                    raise NitroError("نام یا مقدار ویژگی بازیکن معتبر نیست.")
+                candidate.setdefault("player", {}).setdefault("stats", {})[name.strip()] = value
+            elif kind == "add_quest":
+                quest_id, title = operation.get("id"), operation.get("title")
+                quests = candidate.setdefault("quests", [])
+                if not isinstance(quest_id, str) or not quest_id.isascii() or not quest_id.replace("_", "").replace("-", "").isalnum() or any(q.get("id") == quest_id for q in quests):
+                    raise NitroError("شناسه مأموریت باید انگلیسی و یکتا باشد.")
+                if not isinstance(title, str) or not title.strip() or len(title) > 160:
+                    raise NitroError("عنوان مأموریت معتبر نیست.")
+                quests.append({"id": quest_id, "title": title.strip()})
+            elif kind == "add_dialogue":
+                scene = next((item for item in scenes if item.get("id") == operation.get("scene_id")), None)
+                character, line = operation.get("character"), operation.get("text")
+                if scene is None or character not in character_ids or not isinstance(line, str) or not line.strip() or len(line) > 4000:
+                    raise NitroError("گفت‌وگو باید به صحنه و شخصیت موجود متصل باشد.")
+                scene.setdefault("dialogue", []).append({"character": character, "text": line.strip()})
+            elif kind == "add_ui_element":
+                element_id, element_type = operation.get("id"), operation.get("type", "text")
+                ui = candidate.setdefault("ui", {"elements": []})
+                elements = ui.setdefault("elements", [])
+                if not isinstance(element_id, str) or not element_id.isascii() or not element_id.replace("_", "").replace("-", "").isalnum() or any(el.get("id") == element_id for el in elements):
+                    raise NitroError("شناسه عنصر رابط باید انگلیسی و یکتا باشد.")
+                if element_type not in ("text", "button", "name_input", "location", "image", "panel"):
+                    raise NitroError("نوع عنصر رابط مجاز نیست.")
+                element = {"id": element_id, "type": element_type, "text": str(operation.get("text", ""))[:500]}
+                for field, default in (("x", 5), ("y", 5), ("width", 30), ("height", 12)):
+                    value = operation.get(field, default)
+                    if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 100:
+                        raise NitroError("مختصات و اندازه رابط باید بین صفر تا صد باشند.")
+                    element[field] = value
+                elements.append(element)
+            elif kind == "add_world_sprite":
+                sprite_id = operation.get("id")
+                world = candidate.setdefault("world", {"enabled": True, "width": 800, "height": 450, "sprites": []})
+                sprites = world.setdefault("sprites", [])
+                if not isinstance(sprite_id, str) or not sprite_id.isascii() or not sprite_id.replace("_", "").replace("-", "").isalnum() or any(item.get("id") == sprite_id for item in sprites):
+                    raise NitroError("شناسه شیء دوبعدی باید انگلیسی و یکتا باشد.")
+                sprite = {"id": sprite_id, "solid": bool(operation.get("solid", False))}
+                for field, default in (("x", 40), ("y", 40), ("width", 32), ("height", 32)):
+                    value = operation.get(field, default)
+                    if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 10000:
+                        raise NitroError("موقعیت و اندازه شیء دوبعدی معتبر نیست.")
+                    sprite[field] = value
+                sprites.append(sprite)
+                world["enabled"] = True
+            elif kind == "set_scene_media":
+                scene = next((item for item in scenes if item.get("id") == operation.get("scene_id")), None)
+                field, value = operation.get("field"), operation.get("value")
+                if scene is None or field not in ("image", "video", "music") or not isinstance(value, str) or len(value) > 2000 or "://" in value or ".." in value:
+                    raise NitroError("رسانه باید مسیر دارایی محلی معتبر باشد.")
+                scene[field] = value
         try:
             return GameProject(candidate).data
         except Exception as exc:
