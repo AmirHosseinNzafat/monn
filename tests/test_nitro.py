@@ -78,7 +78,7 @@ class NitroSafetyTests(unittest.TestCase):
              "solid": True},
             {"type": "add_world3d_object", "id": "guard", "shape": "sphere",
              "position": [3, 2, 1], "scale": [0.8, 0.8, 1.8],
-             "role": "enemy", "health": 12},
+             "role": "enemy", "health": 12, "speed": 3.0, "damage": 10},
             {"type": "set_world3d_player", "position": [0, -6, 1.7],
              "speed": 9, "sensitivity": 0.15},
             {"type": "set_world3d_gravity", "value": 9.81},
@@ -87,6 +87,8 @@ class NitroSafetyTests(unittest.TestCase):
         self.assertTrue(world["enabled"])
         self.assertEqual([item["id"] for item in world["objects"]], ["wall", "guard"])
         self.assertEqual(world["objects"][1]["health"], 12)
+        self.assertEqual(world["objects"][1]["speed"], 3.0)
+        self.assertEqual(world["objects"][1]["damage"], 10)
         self.assertEqual(world["player"]["speed"], 9)
         self.assertEqual(world["gravity"], 9.81)
 
