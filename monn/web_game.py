@@ -100,6 +100,7 @@ function configureVideoClip(video,start,end,loop) {
 function render() {
   const menu = $("menu-screen");
   if (!gameStarted) {
+    stopSceneTimeline();
     menu.hidden = false; $("game-main").hidden = true;
     $("menu-title").textContent = GAME.ui?.menu_title || GAME.meta.title || "Monn";
     if(GAME.ui?.menu_background)menu.style.backgroundImage="linear-gradient(#080e1dcc,#080e1dcc),url("+JSON.stringify(GAME.ui.menu_background)+")";
