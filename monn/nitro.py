@@ -318,6 +318,15 @@ class NitroAgent:
                     if isinstance(health, bool) or not isinstance(health, int) or not 1 <= health <= 100000:
                         raise NitroError("جان دشمن یا هدف باید عددی بین ۱ تا ۱۰۰۰۰۰ باشد.")
                     entry["health"] = health
+                if role == "enemy":
+                    speed = operation.get("speed", 2.2)
+                    damage = operation.get("damage", 8)
+                    if isinstance(speed, bool) or not isinstance(speed, (int, float)) or not math.isfinite(speed) or not 0 <= speed <= 20:
+                        raise NitroError("سرعت دشمن باید عددی بین صفر تا ۲۰ باشد.")
+                    if isinstance(damage, bool) or not isinstance(damage, int) or not 0 <= damage <= 10000:
+                        raise NitroError("آسیب دشمن باید عددی بین صفر تا ۱۰۰۰۰ باشد.")
+                    entry["speed"] = float(speed)
+                    entry["damage"] = damage
                 objects.append(entry)
                 world["enabled"] = True
                 from .engine3d import validate_world3d
