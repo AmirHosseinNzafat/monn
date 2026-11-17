@@ -79,7 +79,7 @@ class NitroAgent:
             "add_scene {id,title,text}; add_choice {scene_id,id,text,target}; "
             "add_character {id,name,role}; set_player_stat {name,value}; "
             "add_quest {id,title}; add_world_sprite {id,x,y,width,height,solid}; "
-            "add_ui_element {id,type,text,x,y,width,height}; "
+            "add_ui_element {id,element_type,text,x,y,width,height}; "
             "add_dialogue {scene_id,character,text}; set_scene_media {scene_id,field,value}. "
             "شناسه‌ها باید انگلیسی ساده و یکتا باشند. مقصد انتخاب باید شناسه صحنه موجود "
             "یا صحنه‌ای باشد که در همین پیشنهاد ساخته می‌شود. "
@@ -215,7 +215,7 @@ class NitroAgent:
                     raise NitroError("گفت‌وگو باید به صحنه و شخصیت موجود متصل باشد.")
                 scene.setdefault("dialogue", []).append({"character": character, "text": line.strip()})
             elif kind == "add_ui_element":
-                element_id, element_type = operation.get("id"), operation.get("type", "text")
+                element_id, element_type = operation.get("id"), operation.get("element_type", "text")
                 ui = candidate.setdefault("ui", {"elements": []})
                 elements = ui.setdefault("elements", [])
                 if not isinstance(element_id, str) or not element_id.isascii() or not element_id.replace("_", "").replace("-", "").isalnum() or any(el.get("id") == element_id for el in elements):
