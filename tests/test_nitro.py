@@ -71,6 +71,40 @@ class NitroSafetyTests(unittest.TestCase):
         self.assertEqual(updated["ui"]["elements"][0]["type"], "panel")
         self.assertTrue(updated["world"]["sprites"][0]["solid"])
 
+    def test_nitro_can_build_validated_3d_action_scene(self):
+        updated = NitroAgent.apply_operations(sample(), [
+            {"type": "add_world3d_object", "id": "wall", "shape": "box",
+             "position": [0, 4, 1], "scale": [2, 1, 2], "role": "obstacle",
+             "solid": True},
+            {"type": "add_world3d_object", "id": "guard", "shape": "sphere",
+             "position": [3, 2, 1], "scale": [0.8, 0.8, 1.8],
+             "role": "enemy", "health": 12},
+            {"type": "set_world3d_player", "position": [0, -6, 1.7],
+             "speed": 9, "sensitivity": 0.15},
+            {"type": "set_world3d_gravity", "value": 9.81},
+        ])
+        world = updated["world3d"]
+        self.assertTrue(world["enabled"])
+        self.assertEqual([item["id"] for item in world["objects"]], ["wall", "guard"])
+        self.assertEqual(world["objects"][1]["health"], 12)
+        self.assertEqual(world["player"]["speed"], 9)
+        self.assertEqual(world["gravity"], 9.81)
+
+    def test_nitro_rejects_invalid_3d_objects_and_player_values(self):
+        with self.assertRaises(NitroError):
+            NitroAgent.apply_operations(sample(), [
+                {"type": "add_world3d_object", "id": "bad", "shape": "sphere",
+                 "position": [0, float("nan"), 0]}
+            ])
+        with self.assertRaises(NitroError):
+            NitroAgent.apply_operations(sample(), [
+                {"type": "set_world3d_player", "position": [0, 0]}
+            ])
+        with self.assertRaises(NitroError):
+            NitroAgent.apply_operations(sample(), [
+                {"type": "add_world3d_object", "id": "bad", "shape": "unknown"}
+            ])
+
     def test_nitro_rejects_remote_model_endpoint(self):
         with self.assertRaises(NitroError):
             NitroAgent("https://example.com/api/chat")
