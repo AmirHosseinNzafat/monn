@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "monn-lang"
 version = "1.4.3"
-description = "Persian-first programming language, visual game studio and narrative game engine"
+description = "Persian-first programming language, visual game studio, local AI assistant and extensible game toolkit"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
