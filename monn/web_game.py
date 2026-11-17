@@ -253,13 +253,14 @@ function renderCustomUI() {
 let timelineSceneId=null,timelineStartedAt=0,timelineTimers=[],timelineAudio=[];
 function stopSceneTimeline(){timelineTimers.forEach(clearTimeout);timelineTimers=[];timelineAudio.forEach(a=>{try{a.pause();a.src=""}catch(_){}});timelineAudio=[];timelineSceneId=null}
 function startSceneTimeline(scene){
+  if(timelineSceneId===scene?.id)return;
+  stopSceneTimeline();timelineSceneId=scene?.id||null;
   if(!scene?.timeline?.tracks)return;
-  if(timelineSceneId===scene.id)return;
-  stopSceneTimeline();timelineSceneId=scene.id;timelineStartedAt=performance.now();
+  timelineStartedAt=performance.now();
   (scene.timeline.tracks||[]).forEach(track=>(track.clips||[]).forEach(clip=>{
     const delay=Math.max(0,Number(clip.start)||0)*1000,duration=Math.max(.1,Number(clip.duration)||1)*1000;
-    if(track.type==="audio"&&clip.src){const timer=setTimeout(()=>{const audio=new Audio(clip.src);audio.currentTime=Math.max(0,Number(clip.in)||0);audio.volume=Number($("volume-game")?.value??0.65);audio.play().catch(()=>{});timelineAudio.push(audio);if(Number(clip.out)>Number(clip.in))setTimeout(()=>audio.pause(),(Number(clip.out)-Number(clip.in))*1000);else setTimeout(()=>audio.pause(),duration)},delay);timelineTimers.push(timer)}
-    else if(track.type==="video"&&clip.src){const timer=setTimeout(()=>{const video=$("scene-video");video.src=clip.src;video.hidden=false;video.controls=true;video.currentTime=Math.max(0,Number(clip.in)||0);video.play().catch(()=>{});const stop=Number(clip.out)>Number(clip.in)?(Number(clip.out)-Number(clip.in))*1000:duration;setTimeout(()=>video.pause(),stop)},delay);timelineTimers.push(timer)}
+    if(track.type==="audio"&&clip.src){const timer=setTimeout(()=>{const audio=new Audio(clip.src);audio.volume=Number($("volume-game")?.value??0.65);timelineAudio.push(audio);audio.addEventListener("loadedmetadata",()=>{audio.currentTime=Math.max(0,Number(clip.in)||0);audio.play().catch(()=>{});const stop=Number(clip.out)>Number(clip.in)?(Number(clip.out)-Number(clip.in))*1000:duration;setTimeout(()=>audio.pause(),stop)},{once:true})},delay);timelineTimers.push(timer)}
+    else if(track.type==="video"&&clip.src){const timer=setTimeout(()=>{const video=$("scene-video");video.src=clip.src;video.hidden=false;video.controls=true;video.addEventListener("loadedmetadata",()=>{video.currentTime=Math.max(0,Number(clip.in)||0);video.play().catch(()=>{});const stop=Number(clip.out)>Number(clip.in)?(Number(clip.out)-Number(clip.in))*1000:duration;setTimeout(()=>video.pause(),stop)},{once:true});video.load()},delay);timelineTimers.push(timer)}
     else if(track.type==="animation"&&clip.target){const timer=setTimeout(()=>{const node=[...document.querySelectorAll("[data-ui-id]")].find(n=>n.dataset.uiId===clip.target);if(!node)return;const prop=clip.property||"opacity",from=Number(clip.from)||0,to=Number(clip.to)||1,begin=performance.now();const tick=()=>{const p=Math.min(1,(performance.now()-begin)/duration),v=from+(to-from)*p;if(prop==="x")node.style.left=v+"%";else if(prop==="y")node.style.top=v+"%";else if(prop==="scale")node.style.transform="scale("+v+")";else node.style.opacity=String(v);if(p<1)requestAnimationFrame(tick)};requestAnimationFrame(tick)},delay);timelineTimers.push(timer)}
   }));
 }
