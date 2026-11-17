@@ -116,6 +116,8 @@ def run_project(project, project_path=None):
             self.pitch = 0.0
             self.speed = config["player"]["speed"]
             self.sensitivity = config["player"]["sensitivity"]
+            self.gravity = config["gravity"]
+            self.vertical_velocity = 0.0
             self.obstacles = []
             self.enemies = []
             self.projectiles = []
@@ -134,6 +136,9 @@ def run_project(project, project_path=None):
             self.stats = OnscreenText(
                 text="جان: 100   امتیاز: 0", pos=(1.25, 0.92), scale=0.05,
                 align=2, fg=(0.55, 1, 0.78, 1), mayChange=True,
+            )
+            self.crosshair = OnscreenText(
+                text="+", pos=(0, -0.02), scale=0.07, fg=(1, 1, 1, 0.85),
             )
             self.taskMgr.add(self.update, "monn-3d-update")
 
@@ -243,12 +248,18 @@ def run_project(project, project_path=None):
             if self.keys["s"]: movement -= forward
             if self.keys["d"]: movement += right
             if self.keys["a"]: movement -= right
+            current = self.camera.getPos()
             if movement.lengthSquared() > 0:
                 movement.normalize()
-                current = self.camera.getPos()
-                candidate = current + movement * self.speed * dt
-                if not self._blocked(candidate):
-                    self.camera.setPos(candidate)
+            candidate = current + movement * self.speed * dt
+            if self.keys["space"] and current.getZ() <= 1.701:
+                self.vertical_velocity = 5.5
+            self.vertical_velocity -= self.gravity * dt
+            candidate.setZ(max(1.7, current.getZ() + self.vertical_velocity * dt))
+            if candidate.getZ() <= 1.7:
+                self.vertical_velocity = 0.0
+            if not self._blocked(candidate):
+                self.camera.setPos(candidate)
             for shot in list(self.projectiles):
                 shot["life"] -= dt
                 shot["node"].setPos(shot["node"].getPos() + shot["direction"] * 28 * dt)
