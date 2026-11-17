@@ -94,7 +94,7 @@ def run_project(project, project_path=None):
         )
     except ImportError as exc:
         raise Monn3DError(
-            "موتور سه‌بعدی نصب نیست. اجرا کن: py -m pip install -e ".[3d-runtime]""
+            'موتور سه‌بعدی نصب نیست. اجرا کن: py -m pip install -e ".[3d-runtime]"'
         ) from exc
 
     config = validate_world3d(project)
