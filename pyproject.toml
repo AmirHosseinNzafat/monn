@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "monn-lang"
-version = "1.4.3"
+version = "1.4.4"
 description = "Persian-first programming language, visual game studio, local AI assistant and extensible game toolkit"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -16,7 +16,7 @@ images = ["Pillow>=10.0"]
 3d = ["trimesh>=4.0", "matplotlib>=3.8"]
 3d-runtime = ["panda3d>=1.10.15", "panda3d-gltf>=1.2.1"]
 all = ["Pillow>=10.0", "trimesh>=4.0", "matplotlib>=3.8"]
-desktop = ["pywebview>=5.0", "pyinstaller>=6.0", "Pillow>=10.0"]
+desktop = ["pywebview>=5.0", "pyinstaller>=6.0", "Pillow>=10.0", "panda3d>=1.10.15", "panda3d-gltf>=1.2.1"]
 
 [project.scripts]
 monn = "monn_cli:main"
