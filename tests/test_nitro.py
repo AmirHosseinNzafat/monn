@@ -55,6 +55,26 @@ class NitroSafetyTests(unittest.TestCase):
         self.assertEqual(approved, changed)
         self.assertEqual(approved["scenes"][0]["choices"][0]["target"], "forest")
 
+    def test_nitro_can_build_basic_2d_ui_quests_and_dialogue(self):
+        project = sample()
+        project["characters"] = [{"id": "guide", "name": "راهنما"}]
+        updated = NitroAgent.apply_operations(project, [
+            {"type": "set_player_stat", "name": "سکه", "value": 50},
+            {"type": "add_quest", "id": "find_key", "title": "پیدا کردن کلید"},
+            {"type": "add_dialogue", "scene_id": "start", "character": "guide", "text": "به جنگل خوش آمدی"},
+            {"type": "add_ui_element", "id": "welcome", "type": "panel", "text": "سلام"},
+            {"type": "add_world_sprite", "id": "tree", "x": 20, "y": 30, "width": 50, "height": 80, "solid": True},
+        ])
+        self.assertEqual(updated["player"]["stats"]["سکه"], 50)
+        self.assertEqual(updated["quests"][0]["id"], "find_key")
+        self.assertEqual(updated["scenes"][0]["dialogue"][0]["character"], "guide")
+        self.assertEqual(updated["ui"]["elements"][0]["type"], "panel")
+        self.assertTrue(updated["world"]["sprites"][0]["solid"])
+
+    def test_nitro_rejects_remote_model_endpoint(self):
+        with self.assertRaises(NitroError):
+            NitroAgent("https://example.com/api/chat")
+
     def test_unsafe_operation_is_rejected(self):
         with self.assertRaises(NitroError):
             NitroAgent.apply_operations(sample(), [{"type": "execute_python", "code": "import os"}])
