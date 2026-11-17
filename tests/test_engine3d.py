@@ -20,6 +20,26 @@ class Monn3DValidationTests(unittest.TestCase):
         self.assertEqual(result["objects"][0]["role"], "enemy")
         self.assertEqual(result["player"]["speed"], 8)
 
+    def test_enemy_ai_parameters_are_normalized_and_bounded(self):
+        result = validate_world3d({
+            "world3d": {"objects": [
+                {"id": "guard", "role": "enemy", "health": 15,
+                 "speed": 3.5, "damage": 12}
+            ]}
+        })
+        enemy = result["objects"][0]
+        self.assertEqual(enemy["health"], 15)
+        self.assertEqual(enemy["speed"], 3.5)
+        self.assertEqual(enemy["damage"], 12)
+
+    def test_invalid_enemy_ai_parameters_are_rejected(self):
+        for field, value in (("speed", 500), ("damage", -1), ("health", 0)):
+            with self.subTest(field=field):
+                with self.assertRaises(Monn3DError):
+                    validate_world3d({"world3d": {"objects": [
+                        {"id": "guard", "role": "enemy", field: value}
+                    ]}})
+
     def test_repository_action_sample_loads_and_validates(self):
         from pathlib import Path
         from monn.game import load_project
