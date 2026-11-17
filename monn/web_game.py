@@ -214,6 +214,7 @@ function render() {
   }
   $("turn").textContent = "نوبت " + state.turn + " · " + state.visited.length + " صحنه کشف‌شده";
   renderCustomUI();
+  startSceneTimeline(scene);
   applyUIVisibility();
 }
 function startGame() { gameStarted = true; playSound(GAME.ui?.button_sound); const music=$("ui-audio");if(GAME.ui?.background_music){music.src=GAME.ui.background_music;music.loop=true;music.volume=Number(GAME.ui.music_volume??0.45);music.play().catch(()=>{});}render(); }
@@ -238,14 +239,29 @@ function applyUIVisibility() {
 }
 function renderCustomUI() {
   const root=$("custom-ui"); root.replaceChildren();
-  (GAME.ui?.elements||[]).forEach(el=>{
+  (GAME.ui?.elements||[]).forEach((el,index)=>{
     let node;
     if(el.type==="button") { node=document.createElement("button");node.className="choice";node.textContent=el.text||"دکمه";node.addEventListener("click",()=>{playSound(GAME.ui?.button_sound);if(el.target&&sceneMap[el.target]){state.current_scene=el.target;render();}}); }
     else if(el.type==="name_input") { node=document.createElement("input");node.placeholder=el.text||"نام بازیکن";node.value=state.player_name||"";node.addEventListener("input",()=>state.player_name=node.value); }
     else if(el.type==="location") { node=document.createElement("div");node.className="custom-label";node.textContent=sceneMap[state.current_scene]?.title||el.text||"مکان فعلی"; }
-    else { node=document.createElement("div");node.className="custom-label";node.textContent=String(el.text||"").replaceAll("{player}",state.player_name||"بازیکن"); }
-    node.style.position="absolute";node.style.left=(Number(el.x)||0)+"%";node.style.top=(Number(el.y)||0)+"%";node.style.width=(Number(el.width)||30)+"%";root.append(node);
+    else if(el.type==="image") { node=document.createElement("img");node.alt=el.text||"تصویر رابط";node.src=el.src||el.image||"";node.style.objectFit="contain"; }
+    else { node=document.createElement("div");node.className="custom-label";node.textContent=el.type==="panel"?"":String(el.text||"").replaceAll("{player}",state.player_name||"بازیکن"); }
+    node.dataset.uiId=el.id||("ui-"+index);
+    node.style.position="absolute";node.style.left=(Number(el.x)||0)+"%";node.style.top=(Number(el.y)||0)+"%";node.style.width=(Number(el.width)||30)+"%";node.style.height=(Number(el.height)||12)+"%";node.style.color=el.color||"#fff";node.style.background=el.background||"transparent";node.style.fontSize=(Number(el.font_size)||14)+"px";node.style.boxSizing="border-box";node.style.borderRadius="8px";node.style.padding="6px";root.append(node);
   });
+}
+let timelineSceneId=null,timelineStartedAt=0,timelineTimers=[],timelineAudio=[];
+function stopSceneTimeline(){timelineTimers.forEach(clearTimeout);timelineTimers=[];timelineAudio.forEach(a=>{try{a.pause();a.src=""}catch(_){}});timelineAudio=[];timelineSceneId=null}
+function startSceneTimeline(scene){
+  if(!scene?.timeline?.tracks)return;
+  if(timelineSceneId===scene.id)return;
+  stopSceneTimeline();timelineSceneId=scene.id;timelineStartedAt=performance.now();
+  (scene.timeline.tracks||[]).forEach(track=>(track.clips||[]).forEach(clip=>{
+    const delay=Math.max(0,Number(clip.start)||0)*1000,duration=Math.max(.1,Number(clip.duration)||1)*1000;
+    if(track.type==="audio"&&clip.src){const timer=setTimeout(()=>{const audio=new Audio(clip.src);audio.currentTime=Math.max(0,Number(clip.in)||0);audio.volume=Number($("volume-game")?.value??0.65);audio.play().catch(()=>{});timelineAudio.push(audio);if(Number(clip.out)>Number(clip.in))setTimeout(()=>audio.pause(),(Number(clip.out)-Number(clip.in))*1000);else setTimeout(()=>audio.pause(),duration)},delay);timelineTimers.push(timer)}
+    else if(track.type==="video"&&clip.src){const timer=setTimeout(()=>{const video=$("scene-video");video.src=clip.src;video.hidden=false;video.controls=true;video.currentTime=Math.max(0,Number(clip.in)||0);video.play().catch(()=>{});const stop=Number(clip.out)>Number(clip.in)?(Number(clip.out)-Number(clip.in))*1000:duration;setTimeout(()=>video.pause(),stop)},delay);timelineTimers.push(timer)}
+    else if(track.type==="animation"&&clip.target){const timer=setTimeout(()=>{const node=[...document.querySelectorAll("[data-ui-id]")].find(n=>n.dataset.uiId===clip.target);if(!node)return;const prop=clip.property||"opacity",from=Number(clip.from)||0,to=Number(clip.to)||1,begin=performance.now();const tick=()=>{const p=Math.min(1,(performance.now()-begin)/duration),v=from+(to-from)*p;if(prop==="x")node.style.left=v+"%";else if(prop==="y")node.style.top=v+"%";else if(prop==="scale")node.style.transform="scale("+v+")";else node.style.opacity=String(v);if(p<1)requestAnimationFrame(tick)};requestAnimationFrame(tick)},delay);timelineTimers.push(timer)}
+  }));
 }
 function playSound(src) {
   if (!src || $("mute-game")?.checked) return;
