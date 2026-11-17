@@ -107,6 +107,14 @@ class NitroSafetyTests(unittest.TestCase):
                 {"type": "add_world3d_object", "id": "bad", "shape": "unknown"}
             ])
 
+    def test_nitro_exposes_expanded_persian_game_vocabulary(self):
+        vocabulary = NitroAgent.vocabulary()
+        for term in ("tilemap", "raycast", "projectile", "weapon", "damage",
+                     "pathfinding", "keyframe", "prefab", "first_person",
+                     "third_person", "multiplayer", "scene_graph"):
+            self.assertIn(term, vocabulary)
+            self.assertTrue(vocabulary[term])
+
     def test_nitro_rejects_remote_model_endpoint(self):
         with self.assertRaises(NitroError):
             NitroAgent("https://example.com/api/chat")
