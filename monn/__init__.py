@@ -11,7 +11,7 @@ from .game_dsl import dumps_monn, loads_monn
 ساخت_بازی_وب = compile_game_to_html
 خواندن_منبع_بازی = loads_monn
 نوشتن_منبع_بازی = dumps_monn
-__version__ = "1.4.2"
+__version__ = "1.4.3"
 __all__ = ["MonnInterpreter", "MonnError", "MonnRuntimeError", "MonnSyntaxError", "GameEngine", "GameProject", "GameError", "GameStateError", "GameValidationError", "load_project", "run_code", "run_file", "compile_web", "compile_game_to_html", "موتور_بازی", "پروژه_بازی", "بارگذاری_بازی", "ساخت_بازی_وب", "dumps_monn", "loads_monn", "خواندن_منبع_بازی", "نوشتن_منبع_بازی"]
 def run_code(code: str):
     """Parse and execute Monn source code."""
