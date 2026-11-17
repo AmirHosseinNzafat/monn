@@ -193,7 +193,7 @@ class MonnStudioTests(unittest.TestCase):
         ]}
         html = compile_game_to_html(GameProject(project))
         for feature in ("startSceneTimeline", "timelineAudio", "data-ui-id",
-                        'el.type==="image"', "scene.timeline"):
+                        'el.type==="image"', "scene?.timeline"):
             self.assertIn(feature, html)
 
     def test_compiled_browser_runtime_javascript_syntax_when_node_is_available(self):
