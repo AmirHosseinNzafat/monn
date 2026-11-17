@@ -148,6 +148,12 @@ class MonnStudioTests(unittest.TestCase):
             {"type": "stat", "name": "سکه", "op": "add", "value": 2},
             {"type": "journal", "text": "کلید را پیدا کردم."}
         ]
+        project["scenes"][0]["timeline"] = {
+            "duration": 9, "fps": 30,
+            "tracks": [{"id": "voice", "name": "صدا", "type": "audio",
+                        "clips": [{"id": "clip1", "src": "assets/voice.ogg",
+                                   "start": 1, "duration": 3, "in": 0.5, "out": 3.5}]}],
+        }
         project["world"] = {
             "enabled": True, "width": 800, "height": 450,
             "player": {"x": 10, "y": 20, "width": 28, "height": 40, "frames": 4},
