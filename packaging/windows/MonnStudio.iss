@@ -1,5 +1,5 @@
 #define MyAppName "Monn Studio"
-#define MyAppVersion "1.4.3"
+#define MyAppVersion "1.4.4"
 #define MyAppPublisher "AmirHosseinNzafat"
 #define MyAppExeName "MonnStudio.exe"
 
