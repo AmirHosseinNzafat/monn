@@ -25,4 +25,4 @@ monn-studio-desktop = "monn.studio:desktop_main"
 monn-3d = "monn.engine3d:main"
 
 [tool.setuptools.package-data]
-monn = ["studio/*.html"]
+monn = ["studio/*.html", "studio/*.js"]
