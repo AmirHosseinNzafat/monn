@@ -135,7 +135,7 @@ function addWorldSprite(){ensureProjectShape();const id='sprite_'+(project.world
 function selectWorldSprite(id){selectedWorldSprite=id;renderLeft()}
 
 let selected3DObject=0;
-let selected3DObject=0,view3DAngle=0.72,view3DZoom=1,view3DDrag=null;
+let view3DAngle=0.72,view3DZoom=1,view3DDrag=null;
 function world3D(){const w=project.world3d||(project.world3d={enabled:true,title:'جهان سه‌بعدی من',player:{position:[0,-8,1.7],speed:8,sensitivity:.12,camera_mode:'first_person',camera_distance:7},weapon:{damage:1,fire_rate:4,projectile_speed:28,range:60},gravity:9.81,objects:[]});w.player=w.player||{};Object.assign(w.player,{position:w.player.position||[0,-8,1.7],speed:w.player.speed??8,sensitivity:w.player.sensitivity??.12,camera_mode:w.player.camera_mode||'first_person',camera_distance:w.player.camera_distance??7});w.weapon=Object.assign({damage:1,fire_rate:4,projectile_speed:28,range:60},w.weapon||{});w.objects=w.objects||[];w.gravity=w.gravity??9.81;return w}
 function renderWorld3DEditor(root){
  const w=world3D();if(selected3DObject>=w.objects.length)selected3DObject=Math.max(0,w.objects.length-1);
