@@ -21,7 +21,7 @@ PROJECT_LOCATIONS = {}
 
 
 class StudioHandler(BaseHTTPRequestHandler):
-    server_version = "MonnStudio/1.6.0"
+    server_version = "MonnStudio/1.7.0"
 
     def _token(self):
         header = self.headers.get("Authorization", "")
@@ -56,7 +56,7 @@ class StudioHandler(BaseHTTPRequestHandler):
             self.wfile.write(body)
             return
         if path == "/health":
-            self._json(200, {"ok": True, "studio": "Monn Studio", "version": "1.6.0"})
+            self._json(200, {"ok": True, "studio": "Monn Studio", "version": "1.7.0"})
             return
         if path == "/api/auth/me":
             self._json(200, {"ok": True, "username": self._user()})
