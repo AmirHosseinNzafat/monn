@@ -18,7 +18,7 @@
     $("modal").classList.add("open");
   }
   async function postJSON(path,data){
-    const response=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+    const headers={"Content-Type":"application/json"};const token=localStorage.getItem("monn-auth-token");if(token)headers.Authorization="Bearer "+token;const response=await fetch(path,{method:"POST",headers,body:JSON.stringify(data)});
     const type=response.headers.get("content-type")||"";
     const body=type.includes("application/json")?await response.json():{error:await response.text()};
     if(!response.ok)throw new Error(body.error||("خطای سرور: "+response.status));
