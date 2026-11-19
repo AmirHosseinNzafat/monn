@@ -105,6 +105,18 @@ def validate_world3d(project):
     camera_distance = player.get("camera_distance", 7.0)
     if isinstance(camera_distance, bool) or not isinstance(camera_distance, (int, float)) or not math.isfinite(camera_distance) or not 2 <= camera_distance <= 20:
         raise Monn3DError("فاصله دوربین سوم‌شخص باید بین ۲ تا ۲۰ باشد.")
+    lighting = world.get("lighting", {})
+    if not isinstance(lighting, dict):
+        raise Monn3DError("تنظیم نورپردازی معتبر نیست.")
+    ambient_intensity = lighting.get("ambient", 0.34)
+    directional_intensity = lighting.get("directional", 0.66)
+    if isinstance(ambient_intensity, bool) or not isinstance(ambient_intensity, (int, float)) or not math.isfinite(ambient_intensity) or not 0 <= ambient_intensity <= 2:
+        raise Monn3DError("شدت نور محیطی باید بین صفر تا ۲ باشد.")
+    if isinstance(directional_intensity, bool) or not isinstance(directional_intensity, (int, float)) or not math.isfinite(directional_intensity) or not 0 <= directional_intensity <= 3:
+        raise Monn3DError("شدت نور جهت‌دار باید بین صفر تا ۳ باشد.")
+    light_direction = _vector(lighting.get("direction", [-0.4, 0.7, 0.8]), "lighting.direction")
+    if sum(value * value for value in light_direction) < 0.0001:
+        raise Monn3DError("جهت نور نمی‌تواند بردار صفر باشد.")
     weapon = world.get("weapon", {})
     if not isinstance(weapon, dict):
         raise Monn3DError("تنظیم سلاح معتبر نیست.")
@@ -124,6 +136,7 @@ def validate_world3d(project):
             "camera_distance": float(camera_distance),
         },
         "weapon": weapon_config,
+        "lighting": {"ambient": float(ambient_intensity), "directional": float(directional_intensity), "direction": light_direction},
         "objects": normalized,
         "gravity": max(0.0, min(float(world.get("gravity", 9.81)), 100.0)),
     }
@@ -164,6 +177,7 @@ def run_project(project, project_path=None):
             self.camera_mode = config["player"]["camera_mode"]
             self.camera_distance = config["player"]["camera_distance"]
             self.weapon = config["weapon"]
+            self.lighting = config["lighting"]
             self.fire_cooldown = 0.0
             self.player_position = Vec3(*config["player"]["position"])
             self.player_visual = None
@@ -205,10 +219,12 @@ def run_project(project, project_path=None):
 
         def _lighting(self):
             ambient = AmbientLight("monn-ambient")
-            ambient.setColor(Vec4(0.38, 0.42, 0.52, 1))
+            ambient_level = min(1.0, self.lighting["ambient"])
+            ambient.setColor(Vec4(ambient_level * 0.95, ambient_level, min(1.0, ambient_level * 1.15), 1))
             self.render.setLight(self.render.attachNewNode(ambient))
             sun = DirectionalLight("monn-sun")
-            sun.setColor(Vec4(0.95, 0.92, 0.82, 1))
+            sun_level = min(1.0, self.lighting["directional"])
+            sun.setColor(Vec4(sun_level, sun_level * 0.97, sun_level * 0.86, 1))
             sun_np = self.render.attachNewNode(sun)
             sun_np.setHpr(-35, -55, 0)
             self.render.setLight(sun_np)
