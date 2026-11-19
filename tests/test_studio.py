@@ -179,7 +179,7 @@ class MonnStudioTests(unittest.TestCase):
                         "applyDesignerInspector", "designer-canvas", "function preview()",
                         "tabWorld3D", "renderWorld3DEditor", "add3DObject", "render3DInspector",
                         "world3DCanvas", "drawWorld3DViewport", "world3DPointerMove",
-                        "camera_mode", "update3DWeapon", "world3DZoom"):
+                        "camera_mode", "update3DWeapon", "view3DZoom"):
             self.assertIn(feature, html)
 
     def test_compiled_runtime_runs_timeline_and_renders_designer_images(self):
