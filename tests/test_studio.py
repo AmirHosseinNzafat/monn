@@ -181,8 +181,10 @@ class MonnStudioTests(unittest.TestCase):
                         "world3DCanvas", "drawWorld3DViewport", "world3DPointerMove",
                         "camera_mode", "update3DWeapon", "view3DZoom",
                         "getContext('webgl'", "load3DGLB", "set3DGizmo",
-                        "gizmoRotate", "m4Perspective", "uLight",
-                        "GLTF", "rotation", "frame3DSelection"):
+                        "gizmoRotate", "m4Perspective", "uLight", "uAmbient",
+                        "GLTF", "rotation", "frame3DSelection",
+                        "update3DLighting", "update3DLightDirection",
+                        "model_asset", "m4NodeTRS", "world3DProjectPoint"):
             self.assertIn(feature, html)
 
     def test_compiled_runtime_runs_timeline_and_renders_designer_images(self):
