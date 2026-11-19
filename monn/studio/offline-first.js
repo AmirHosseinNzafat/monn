@@ -66,7 +66,7 @@
     modal("حساب محلی Monn",'<p class="muted">حساب روی همین رایانه ذخیره می‌شود. نام کاربری فارسی یا انگلیسی و گذرواژهٔ حداقل ۸ نویسه قابل قبول است.</p>'+
       '<div class="field"><label>نام کاربری (۳ تا ۳۲ نویسه)</label><input id="authUser" autocomplete="username" placeholder="نام کاربری"></div>'+
       '<div class="field"><label>گذرواژه (حداقل ۸ نویسه)</label><input id="authPass" type="password" autocomplete="current-password" placeholder="گذرواژه"></div>'+
-      '<div class="row"><button class="primary" onclick="accountAction(\\'login\\')">ورود</button><button onclick="accountAction(\\'register\\')">ساخت حساب</button></div>'+
+      '<div class="row"><button class="primary" onclick="accountAction(\'login\')">ورود</button><button onclick="accountAction(\'register\')">ساخت حساب</button></div>'+
       '<button class="danger" style="margin-top:12px" onclick="accountLogout()">خروج از حساب</button><p class="muted" id="authStatus"></p>',"520px");
   };
   window.openNitro=function(){
