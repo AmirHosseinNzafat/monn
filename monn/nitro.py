@@ -110,7 +110,8 @@ class NitroAgent:
             "add_ui_element {id,element_type,text,x,y,width,height}; "
             "add_dialogue {scene_id,character,text}; set_scene_media {scene_id,field,value}; "
             "add_world3d_object {id,shape,position,scale,color,solid,role,model,health}; "
-            "set_world3d_player {position,speed,sensitivity}; set_world3d_gravity {value}. "
+            "set_world3d_player {position,speed,sensitivity,camera_mode,camera_distance}; " +
+            "set_world3d_weapon {damage,fire_rate,projectile_speed,range}; set_world3d_gravity {value}. "
             "برای add_world3d_object شکل box یا sphere یا model انتخاب کن؛ position و scale آرایه سه‌عددی‌اند؛ "
             "role یکی از decoration یا obstacle یا enemy یا target است. برای enemy مقدارهای health و speed و damage را هم تنظیم کن. "
             "برای بازیکن سه‌بعدی position سه‌بعدی، speed بین ۰٫۵ تا ۴۰ و sensitivity بین ۰٫۰۲ تا ۱ است؛ "
@@ -338,12 +339,32 @@ class NitroAgent:
                 if not isinstance(position, (list, tuple)) or len(position) != 3 or any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in position):
                     raise NitroError("موقعیت بازیکن سه‌بعدی باید سه عدد معتبر داشته باشد.")
                 player["position"] = [float(v) for v in position]
-                for field, low, high in (("speed", 0.5, 40), ("sensitivity", 0.02, 1)):
+                for field, low, high in (("speed", 0.5, 40), ("sensitivity", 0.02, 1), ("camera_distance", 2, 20)):
                     if field in operation:
                         value = operation[field]
                         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not low <= value <= high:
                             raise NitroError("مقدار {} خارج از محدوده مجاز است.".format(field))
                         player[field] = float(value)
+                if "camera_mode" in operation:
+                    if operation["camera_mode"] not in ("first_person", "third_person"):
+                        raise NitroError("حالت دوربین باید first_person یا third_person باشد.")
+                    player["camera_mode"] = operation["camera_mode"]
+                world["enabled"] = True
+                from .engine3d import validate_world3d
+                validate_world3d(candidate)
+            elif kind == "set_world3d_weapon":
+                world = candidate.setdefault("world3d", {"enabled": True, "objects": []})
+                weapon = world.setdefault("weapon", {})
+                bounds = {"damage": (1, 1000), "fire_rate": (0.2, 20),
+                          "projectile_speed": (2, 200), "range": (5, 500)}
+                for field, (low, high) in bounds.items():
+                    if field in operation:
+                        value = operation[field]
+                        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not low <= value <= high:
+                            raise NitroError("مقدار {} برای سلاح خارج از محدوده مجاز است.".format(field))
+                        weapon[field] = int(value) if field == "damage" else float(value)
+                if not any(field in operation for field in bounds):
+                    raise NitroError("حداقل یک ویژگی سلاح باید مشخص شود.")
                 world["enabled"] = True
                 from .engine3d import validate_world3d
                 validate_world3d(candidate)
