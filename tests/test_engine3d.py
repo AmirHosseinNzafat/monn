@@ -44,6 +44,18 @@ class Monn3DValidationTests(unittest.TestCase):
         self.assertEqual(result["weapon"]["projectile_speed"], 42)
         self.assertEqual(result["weapon"]["range"], 120)
 
+    def test_object_rotation_is_normalized_and_applied_to_model_config(self):
+        result = validate_world3d({"world3d": {"objects": [
+            {"id": "crate", "shape": "box", "rotation": [15, 30, 45]}
+        ]}})
+        self.assertEqual(result["objects"][0]["rotation"], [15.0, 30.0, 45.0])
+
+    def test_invalid_object_rotation_is_rejected(self):
+        with self.assertRaises(Monn3DError):
+            validate_world3d({"world3d": {"objects": [
+                {"id": "crate", "rotation": [0, float("nan"), 0]}
+            ]}})
+
     def test_invalid_camera_and_weapon_settings_are_rejected(self):
         invalid = [
             ({"player": {"camera_mode": "cinematic"}}, "camera"),
