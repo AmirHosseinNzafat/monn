@@ -62,6 +62,13 @@
       }catch(error){toast("خطای ذخیره: "+error.message);}
     }
   };
+  window.openAccount=function(){
+    modal("حساب محلی Monn",'<p class="muted">حساب روی همین رایانه ذخیره می‌شود. نام کاربری فارسی یا انگلیسی و گذرواژهٔ حداقل ۸ نویسه قابل قبول است.</p>'+
+      '<div class="field"><label>نام کاربری (۳ تا ۳۲ نویسه)</label><input id="authUser" autocomplete="username" placeholder="نام کاربری"></div>'+
+      '<div class="field"><label>گذرواژه (حداقل ۸ نویسه)</label><input id="authPass" type="password" autocomplete="current-password" placeholder="گذرواژه"></div>'+
+      '<div class="row"><button class="primary" onclick="accountAction(\\'login\\')">ورود</button><button onclick="accountAction(\\'register\\')">ساخت حساب</button></div>'+
+      '<button class="danger" style="margin-top:12px" onclick="accountLogout()">خروج از حساب</button><p class="muted" id="authStatus"></p>',"520px");
+  };
   window.openNitro=function(){
     modal("نیترو · سازندهٔ الگوریتمی آفلاین",'<p class="muted">نیترو داخلی Monn بدون Ollama، مدل زبانی، اینترنت یا کلید API کار می‌کند. ایده را می‌خواند، نوع پروژه را با قواعد تشخیص می‌دهد و از مولدهای داخلی برای ساخت صحنه، مسیرها و اشیای پایه استفاده می‌کند. این سیستم مولد قاعده‌محور است، نه یک مدل زبانی آزاد.</p>'+
       '<div class="field"><label>ایدهٔ بازی</label><textarea id="offlineNitroPrompt" rows="5" placeholder="یک بتل‌بیس علمی‌تخیلی با اتاق فرماندهی، دشمن آموزشی و دو هدف بساز..."></textarea></div>'+
