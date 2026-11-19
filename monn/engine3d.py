@@ -78,13 +78,31 @@ def validate_world3d(project):
     player = world.get("player", {})
     if not isinstance(player, dict):
         raise Monn3DError("تنظیم بازیکن سه‌بعدی معتبر نیست.")
+    camera_mode = player.get("camera_mode", "first_person")
+    if camera_mode not in ("first_person", "third_person"):
+        raise Monn3DError("حالت دوربین باید first_person یا third_person باشد.")
+    camera_distance = player.get("camera_distance", 7.0)
+    if isinstance(camera_distance, bool) or not isinstance(camera_distance, (int, float)) or not math.isfinite(camera_distance) or not 2 <= camera_distance <= 20:
+        raise Monn3DError("فاصله دوربین سوم‌شخص باید بین ۲ تا ۲۰ باشد.")
+    weapon = world.get("weapon", {})
+    if not isinstance(weapon, dict):
+        raise Monn3DError("تنظیم سلاح معتبر نیست.")
+    weapon_config = {}
+    for field, default, low, high in (("damage", 1, 1, 1000), ("fire_rate", 4.0, 0.2, 20.0), ("projectile_speed", 28.0, 2.0, 200.0), ("range", 60.0, 5.0, 500.0)):
+        value = weapon.get(field, default)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not low <= value <= high:
+            raise Monn3DError("تنظیم سلاح {} نامعتبر است.".format(field))
+        weapon_config[field] = float(value) if field != "damage" else int(value)
     return {
         "title": str(world.get("title") or project.get("meta", {}).get("title") or "Monn 3D"),
         "player": {
             "position": _vector(player.get("position", [0, -8, 1.7]), "player.position"),
             "speed": max(0.5, min(float(player.get("speed", 8)), 40)),
             "sensitivity": max(0.02, min(float(player.get("sensitivity", 0.12)), 1.0)),
+            "camera_mode": camera_mode,
+            "camera_distance": float(camera_distance),
         },
+        "weapon": weapon_config,
         "objects": normalized,
         "gravity": max(0.0, min(float(world.get("gravity", 9.81)), 100.0)),
     }
@@ -122,6 +140,17 @@ def run_project(project, project_path=None):
             self.pitch = 0.0
             self.speed = config["player"]["speed"]
             self.sensitivity = config["player"]["sensitivity"]
+            self.camera_mode = config["player"]["camera_mode"]
+            self.camera_distance = config["player"]["camera_distance"]
+            self.weapon = config["weapon"]
+            self.fire_cooldown = 0.0
+            self.player_position = Vec3(*config["player"]["position"])
+            self.player_visual = None
+            if self.camera_mode == "third_person":
+                self.player_visual = self.loader.loadModel("models/misc/sphere")
+                self.player_visual.reparentTo(self.render)
+                self.player_visual.setScale(0.45, 0.35, 0.85)
+                self.player_visual.setColor(0.18, 0.78, 0.88, 1)
             self.gravity = config["gravity"]
             self.vertical_velocity = 0.0
             self.obstacles = []
@@ -133,6 +162,7 @@ def run_project(project, project_path=None):
             self._floor()
             self._objects()
             self.camera.setPos(*config["player"]["position"])
+            self._update_camera()
             self._capture_mouse()
             self.hud = OnscreenText(
                 text="WASD حرکت  |  ماوس نگاه  |  کلیک چپ شلیک  |  ESC خروج",
@@ -196,6 +226,20 @@ def run_project(project, project_path=None):
                 if item["role"] in ("enemy", "target"):
                     self.enemies.append({"node": node, "health": int(item.get("health", 3)), "alive": True, "role": item["role"], "speed": float(item.get("speed", 2.2)), "damage": int(item.get("damage", 8)), "attack_timer": 0.0})
 
+        def _update_camera(self):
+            if self.camera_mode == "first_person":
+                self.camera.setPos(self.player_position)
+            else:
+                heading = math.radians(self.heading)
+                offset = Vec3(math.sin(heading) * self.camera_distance,
+                              -math.cos(heading) * self.camera_distance,
+                              self.camera_distance * 0.28)
+                self.camera.setPos(self.player_position + offset)
+                self.camera.lookAt(self.player_position + Vec3(0, 0, 0.65))
+                if self.player_visual:
+                    self.player_visual.setPos(self.player_position - Vec3(0, 0, 0.8))
+                    self.player_visual.setH(self.heading)
+
         def _capture_mouse(self):
             if not self.win:
                 return
@@ -213,7 +257,8 @@ def run_project(project, project_path=None):
             dy = pointer.getY() - self.center[1]
             self.heading -= dx * self.sensitivity
             self.pitch = max(-78, min(78, self.pitch - dy * self.sensitivity))
-            self.camera.setHpr(self.heading, self.pitch, 0)
+            if self.camera_mode == "first_person":
+                self.camera.setHpr(self.heading, self.pitch, 0)
             self.win.movePointer(0, self.center[0], self.center[1])
 
         def _blocked(self, pos):
@@ -228,6 +273,9 @@ def run_project(project, project_path=None):
             return False
 
         def fire(self):
+            if self.fire_cooldown > 0:
+                return
+            self.fire_cooldown = 1.0 / self.weapon["fire_rate"]
             direction = self.camera.getQuat(self.render).getForward()
             origin = self.camera.getPos(self.render) + direction * 0.8
             bullet = self.loader.loadModel("models/misc/sphere")
@@ -235,7 +283,7 @@ def run_project(project, project_path=None):
             bullet.setScale(0.12)
             bullet.setPos(origin)
             bullet.setColor(1, 0.78, 0.18, 1)
-            self.projectiles.append({"node": bullet, "direction": direction, "life": 2.2})
+            self.projectiles.append({"node": bullet, "direction": direction, "life": self.weapon["range"] / self.weapon["projectile_speed"]})
 
         def update(self, task):
             dt = min(ClockObject.getGlobalClock().getDt(), 0.05)
@@ -254,7 +302,7 @@ def run_project(project, project_path=None):
             if self.keys["s"]: movement -= forward
             if self.keys["d"]: movement += right
             if self.keys["a"]: movement -= right
-            current = self.camera.getPos()
+            current = self.player_position
             if movement.lengthSquared() > 0:
                 movement.normalize()
             candidate = current + movement * self.speed * dt
@@ -265,8 +313,10 @@ def run_project(project, project_path=None):
             if candidate.getZ() <= 1.7:
                 self.vertical_velocity = 0.0
             if not self._blocked(candidate):
-                self.camera.setPos(candidate)
-            player_position = self.camera.getPos()
+                self.player_position = candidate
+            self._update_camera()
+            self.fire_cooldown = max(0.0, self.fire_cooldown - dt)
+            player_position = self.player_position
             for enemy in self.enemies:
                 if not enemy["alive"] or enemy["role"] != "enemy":
                     continue
@@ -285,14 +335,14 @@ def run_project(project, project_path=None):
                         enemy["attack_timer"] = 1.25
             for shot in list(self.projectiles):
                 shot["life"] -= dt
-                shot["node"].setPos(shot["node"].getPos() + shot["direction"] * 28 * dt)
+                shot["node"].setPos(shot["node"].getPos() + shot["direction"] * self.weapon["projectile_speed"] * dt)
                 hit = False
                 pos = shot["node"].getPos()
                 for enemy in self.enemies:
                     if not enemy["alive"]:
                         continue
                     if (enemy["node"].getPos() - pos).length() < max(enemy["node"].getScale()) * 0.8 + 0.2:
-                        enemy["health"] -= 1
+                        enemy["health"] -= self.weapon["damage"]
                         hit = True
                         if enemy["health"] <= 0:
                             enemy["alive"] = False
