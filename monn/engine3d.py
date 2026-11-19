@@ -4,7 +4,9 @@ The module imports without Panda3D installed; the dependency is required only
 when a 3D project is launched.
 """
 import argparse
+import base64
 import math
+import tempfile
 from pathlib import Path
 
 
@@ -75,6 +77,17 @@ def validate_world3d(project):
             model = item.get("model")
             if not isinstance(model, str) or not model.strip() or "://" in model or ".." in Path(model).parts:
                 raise Monn3DError("مدل باید مسیر فایل محلی و بدون پیمایش پوشه باشد.")
+            model_data = item.get("model_data")
+            if model_data is not None:
+                if not isinstance(model_data, str) or len(model_data) > 48 * 1024 * 1024 or not model_data.startswith(("data:model/gltf-binary;base64,", "data:model/gltf+json;base64,", "data:application/octet-stream;base64,", "data:application/json;base64,")):
+                    raise Monn3DError("دادهٔ مدل جاسازی‌شده معتبر یا کوچک‌تر از ۳۲ مگابایت نیست.")
+                try:
+                    payload = base64.b64decode(model_data.split(",", 1)[1], validate=True)
+                except (ValueError, base64.binascii.Error) as exc:
+                    raise Monn3DError("کدگذاری مدل جاسازی‌شده معتبر نیست.") from exc
+                if len(payload) > 32 * 1024 * 1024:
+                    raise Monn3DError("حجم مدل جاسازی‌شده از ۳۲ مگابایت بیشتر است.")
+                entry["model_data"] = model_data
         normalized.append(entry)
     player = world.get("player", {})
     if not isinstance(player, dict):
@@ -154,6 +167,7 @@ def run_project(project, project_path=None):
                 self.player_visual.setColor(0.18, 0.78, 0.88, 1)
             self.gravity = config["gravity"]
             self.vertical_velocity = 0.0
+            self.model_tempdir = tempfile.TemporaryDirectory(prefix="monn-3d-models-")
             self.obstacles = []
             self.enemies = []
             self.projectiles = []
@@ -203,11 +217,17 @@ def run_project(project, project_path=None):
         def _objects(self):
             for item in config["objects"]:
                 if item["shape"] == "model":
-                    model_path = (root / item["model"]).resolve()
-                    if root not in model_path.parents and model_path != root:
-                        raise Monn3DError("مسیر مدل از پوشه پروژه خارج می‌شود.")
-                    if not model_path.is_file():
-                        raise Monn3DError("فایل مدل پیدا نشد: " + str(model_path))
+                    if item.get("model_data"):
+                        header, encoded = item["model_data"].split(",", 1)
+                        suffix = ".gltf" if "gltf+json" in header or "application/json" in header else ".glb"
+                        model_path = Path(self.model_tempdir.name) / (item["id"] + suffix)
+                        model_path.write_bytes(base64.b64decode(encoded, validate=True))
+                    else:
+                        model_path = (root / item["model"]).resolve()
+                        if root not in model_path.parents and model_path != root:
+                            raise Monn3DError("مسیر مدل از پوشه پروژه خارج می‌شود.")
+                        if not model_path.is_file():
+                            raise Monn3DError("فایل مدل پیدا نشد: " + str(model_path))
                     node = self.loader.loadModel(str(model_path))
                     if node.isEmpty():
                         raise Monn3DError("مدل سه‌بعدی قابل بارگذاری نیست: " + item["model"])
@@ -365,7 +385,10 @@ def run_project(project, project_path=None):
             return task.cont
 
     app = MonnAction3D()
-    app.run()
+    try:
+        app.run()
+    finally:
+        app.model_tempdir.cleanup()
 
 
 def main():
