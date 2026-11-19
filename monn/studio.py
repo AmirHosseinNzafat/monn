@@ -46,6 +46,15 @@ class StudioHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
+        if path == "/offline-first.js":
+            body = (STUDIO_DIR / "offline-first.js").read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/javascript; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if path == "/health":
             self._json(200, {"ok": True, "studio": "Monn Studio", "version": "1.6.0"})
             return
