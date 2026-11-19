@@ -52,6 +52,7 @@ def validate_world3d(project):
         entry["shape"] = shape
         entry["position"] = _vector(item.get("position", [0, 0, 0]), "position")
         entry["scale"] = _vector(item.get("scale", [1, 1, 1]), "scale", positive=True)
+        entry["rotation"] = _vector(item.get("rotation", [0, 0, 0]), "rotation")
         entry["solid"] = bool(item.get("solid", shape != "model"))
         entry["role"] = item.get("role", "decoration")
         if entry["role"] not in ("decoration", "obstacle", "enemy", "target"):
@@ -216,6 +217,7 @@ def run_project(project, project_path=None):
                 node.reparentTo(self.render)
                 node.setPos(*item["position"])
                 node.setScale(*item["scale"])
+                node.setHpr(*item["rotation"])
                 rgb = tuple(int(item["color"][i:i + 2], 16) / 255.0 for i in (1, 3, 5))
                 node.setColor(rgb[0], rgb[1], rgb[2], 1)
                 node.setTag("monn-id", item["id"])
