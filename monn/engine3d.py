@@ -5,6 +5,7 @@ when a 3D project is launched.
 """
 import argparse
 import base64
+import hashlib
 import math
 import tempfile
 from pathlib import Path
@@ -226,7 +227,7 @@ def run_project(project, project_path=None):
                     if item.get("model_data"):
                         header, encoded = item["model_data"].split(",", 1)
                         suffix = ".gltf" if "gltf+json" in header or "application/json" in header else ".glb"
-                        model_path = Path(self.model_tempdir.name) / (item["id"] + suffix)
+                        model_path = Path(self.model_tempdir.name) / (hashlib.sha256(item["id"].encode("utf-8")).hexdigest() + suffix)
                         model_path.write_bytes(base64.b64decode(encoded, validate=True))
                     else:
                         model_path = (root / item["model"]).resolve()
