@@ -231,9 +231,11 @@ def run_project(project, project_path=None):
                 self.camera.setPos(self.player_position)
             else:
                 heading = math.radians(self.heading)
-                offset = Vec3(math.sin(heading) * self.camera_distance,
-                              -math.cos(heading) * self.camera_distance,
-                              self.camera_distance * 0.28)
+                pitch = math.radians(self.pitch)
+                horizontal = self.camera_distance * math.cos(pitch)
+                offset = Vec3(math.sin(heading) * horizontal,
+                              -math.cos(heading) * horizontal,
+                              self.camera_distance * math.sin(pitch) + 1.5)
                 self.camera.setPos(self.player_position + offset)
                 self.camera.lookAt(self.player_position + Vec3(0, 0, 0.65))
                 if self.player_visual:
@@ -289,10 +291,15 @@ def run_project(project, project_path=None):
             dt = min(ClockObject.getGlobalClock().getDt(), 0.05)
             self._look()
             quat = self.camera.getQuat(self.render)
-            forward = quat.getForward()
-            right = quat.getRight()
-            forward.setZ(0)
-            right.setZ(0)
+            if self.camera_mode == "third_person":
+                heading = math.radians(self.heading)
+                forward = Vec3(math.sin(heading), math.cos(heading), 0)
+                right = Vec3(math.cos(heading), -math.sin(heading), 0)
+            else:
+                forward = quat.getForward()
+                right = quat.getRight()
+                forward.setZ(0)
+                right.setZ(0)
             if forward.lengthSquared() > 0:
                 forward.normalize()
             if right.lengthSquared() > 0:
