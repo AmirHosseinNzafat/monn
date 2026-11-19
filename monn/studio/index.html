@@ -191,13 +191,14 @@ function render3DInspector(o,i){
  (o.shape==='model'?'<div class="field"><label>مسیر مدل محلی نسبت به پروژه</label><input value="'+esc(o.model||'')+'" placeholder="assets/robot.glb" onchange="update3DObject('+i+',\'model\',this.value)"></div>':'')+
  '<div class="section-title">موقعیت و اندازه</div><div class="row">'+[0,1,2].map(v=>'<div class="field"><label>موقعیت '+['X','Y','Z'][v]+'</label><input type="number" step=".1" value="'+Number(pos[v]||0)+'" onchange="update3DVector('+i+',\'position\','+v+',this.value)"></div>').join('')+'</div>'+
  '<div class="row">'+[0,1,2].map(v=>'<div class="field"><label>اندازه '+['X','Y','Z'][v]+'</label><input type="number" min=".1" step=".1" value="'+Number(scale[v]||1)+'" onchange="update3DVector('+i+',\'scale\','+v+',this.value)"></div>').join('')+'</div>'+
+ '<div class="row">'+[0,1,2].map(v=>'<div class="field"><label>چرخش '+['X','Y','Z'][v]+' (درجه)</label><input type="number" step="1" value="'+Number((o.rotation||[0,0,0])[v])+'" onchange="update3DVector('+i+',\'rotation\','+v+',this.value)"></div>').join('')+'</div>'+
  '<div class="field"><label>رنگ</label><input type="color" value="'+esc(o.color||'#6b91b8')+'" onchange="update3DObject('+i+',\'color\',this.value)"></div>'+
  '<label><input type="checkbox" style="width:auto" '+(o.solid?'checked':'')+' onchange="update3DObject('+i+',\'solid\',this.checked)"> برخورد فیزیکی</label>'+
  (o.role==='enemy'?'<div class="section-title">رفتار دشمن</div><div class="row">'+[['health','جان',1,100000],['speed','سرعت تعقیب',0,20],['damage','آسیب تماس',0,10000]].map(a=>'<div class="field"><label>'+a[1]+'</label><input type="number" min="'+a[2]+'" max="'+a[3]+'" step=".5" value="'+(o[a[0]]??({health:3,speed:2.2,damage:8}[a[0]]))+'" onchange="update3DObject('+i+',\''+a[0]+'\',Number(this.value))"></div>').join('')+'</div>':'');
 }
 function add3DObject(shape){
  const w=world3D(),id='object_'+(w.objects.length+1),role=shape==='enemy'?'enemy':shape==='target'?'target':'obstacle',geometry=shape==='enemy'||shape==='target'?'sphere':shape;
- w.objects.push({id,shape:geometry,position:[0,4+w.objects.length*2,1],scale:geometry==='sphere'?[1,1,1]:[1.5,1.5,2],color:shape==='enemy'?'#ff526b':shape==='target'?'#65dca6':geometry==='sphere'?'#3b9cdb':'#6b91b8',solid:true,role,...(role==='enemy'?{health:3,speed:2.2,damage:8}:{}),...(geometry==='model'?{model:'assets/model.glb'}:{})});
+ w.objects.push({id,shape:geometry,position:[0,4+w.objects.length*2,1],scale:geometry==='sphere'?[1,1,1]:[1.5,1.5,2],rotation:[0,0,0],color:shape==='enemy'?'#ff526b':shape==='target'?'#65dca6':geometry==='sphere'?'#3b9cdb':'#6b91b8',solid:true,role,...(role==='enemy'?{health:3,speed:2.2,damage:8}:{}),...(geometry==='model'?{model:'assets/model.glb'}:{})});
  selected3DObject=w.objects.length-1;persist();renderWorld3DEditor($('leftContent'));
 }
 function select3DObject(i){selected3DObject=i;renderWorld3DEditor($('leftContent'))}
