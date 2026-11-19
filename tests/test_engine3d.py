@@ -50,6 +50,22 @@ class Monn3DValidationTests(unittest.TestCase):
         ]}})
         self.assertEqual(result["objects"][0]["rotation"], [15.0, 30.0, 45.0])
 
+    def test_model_can_reference_embedded_project_asset(self):
+        data = "data:model/gltf-binary;base64,AA=="
+        result = validate_world3d({
+            "assets": [{"kind": "model", "data": data}],
+            "world3d": {"objects": [
+                {"id": "imported", "shape": "model", "model": "robot.glb", "model_asset": 0}
+            ]},
+        })
+        self.assertEqual(result["objects"][0]["model_data"], data)
+
+    def test_invalid_model_asset_reference_is_rejected(self):
+        with self.assertRaises(Monn3DError):
+            validate_world3d({"assets": [], "world3d": {"objects": [
+                {"id": "imported", "shape": "model", "model": "robot.glb", "model_asset": 4}
+            ]}})
+
     def test_invalid_object_rotation_is_rejected(self):
         with self.assertRaises(Monn3DError):
             validate_world3d({"world3d": {"objects": [
