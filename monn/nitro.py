@@ -182,7 +182,7 @@ class NitroAgent:
         characters = candidate.setdefault("characters", [])
         scene_ids = {scene.get("id") for scene in scenes}
         character_ids = {character.get("id") for character in characters}
-        allowed = {"set_title", "set_scene_text", "add_scene", "add_choice", "add_character", "set_player_stat", "add_quest", "add_dialogue", "add_ui_element", "add_world_sprite", "set_scene_media", "add_world3d_object", "set_world3d_player", "set_world3d_gravity"}
+        allowed = {"set_title", "set_scene_text", "add_scene", "add_choice", "add_character", "set_player_stat", "add_quest", "add_dialogue", "add_ui_element", "add_world_sprite", "set_scene_media", "add_world3d_object", "set_world3d_player", "set_world3d_weapon", "set_world3d_gravity"}
         for index, operation in enumerate(operations):
             if not isinstance(operation, dict):
                 raise NitroError("تغییر شماره {} معتبر نیست.".format(index + 1))
