@@ -50,6 +50,20 @@ class Monn3DValidationTests(unittest.TestCase):
         ]}})
         self.assertEqual(result["objects"][0]["rotation"], [15.0, 30.0, 45.0])
 
+    def test_lighting_settings_are_normalized_and_bounded(self):
+        result = validate_world3d({"world3d": {"lighting": {
+            "ambient": 0.5, "directional": 1.2, "direction": [1, 0, 0]
+        }}})
+        self.assertEqual(result["lighting"]["ambient"], 0.5)
+        self.assertEqual(result["lighting"]["directional"], 1.2)
+        self.assertEqual(result["lighting"]["direction"], [1.0, 0.0, 0.0])
+
+    def test_invalid_lighting_settings_are_rejected(self):
+        for lighting in ({"ambient": -1}, {"directional": 5}, {"direction": [0, 0, 0]}):
+            with self.subTest(lighting=lighting):
+                with self.assertRaises(Monn3DError):
+                    validate_world3d({"world3d": {"lighting": lighting}})
+
     def test_model_can_reference_embedded_project_asset(self):
         data = "data:model/gltf-binary;base64,AA=="
         result = validate_world3d({
