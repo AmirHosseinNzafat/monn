@@ -42,9 +42,9 @@
           prompt:$("newProjectPrompt").value
         });
         projectFolderId=result.folder_id;
-        window.project=result.project;
+        project=result.project;
         if(typeof ensureProjectShape==="function")ensureProjectShape();
-        window.active=project.meta.start_scene;
+        active=project.meta.start_scene;
         if(typeof render==="function")render();
         if(typeof persist==="function")persist();
         status.textContent="پروژه ساخته شد: "+result.path;
@@ -55,7 +55,7 @@
     async save(){
       if(!projectFolderId){if(typeof saveMonn==="function")return saveMonn();return;}
       try{
-        const result=await postJSON("/api/project/save",{folder_id:projectFolderId,project:window.project});
+        const result=await postJSON("/api/project/save",{folder_id:projectFolderId,project:project});
         toast("پروژه در مسیر انتخاب‌شده ذخیره شد.");
         $("saveStatus").textContent="● ذخیره در پوشه پروژه";
         return result;
@@ -71,9 +71,9 @@
     const out=$("offlineNitroResult");out.textContent="در حال ساخت با الگوریتم‌های داخلی...";
     try{
       const result=await postJSON("/api/nitro/offline",{prompt:$("offlineNitroPrompt").value});
-      window.project=result.project;
+      project=result.project;
       if(typeof ensureProjectShape==="function")ensureProjectShape();
-      window.active=project.meta.start_scene;
+      active=project.meta.start_scene;
       if(typeof render==="function")render();
       if(typeof persist==="function")persist();
       out.textContent="بازی ساخته شد: "+result.project.meta.title+" · "+result.project.scenes.length+" صحنه · "+((result.project.world3d||{}).objects||[]).length+" شیء سه‌بعدی. برای نگهداری دائمی از «ذخیره پروژه» استفاده کن.";
