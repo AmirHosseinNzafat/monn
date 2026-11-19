@@ -78,6 +78,12 @@ def validate_world3d(project):
             if not isinstance(model, str) or not model.strip() or "://" in model or ".." in Path(model).parts:
                 raise Monn3DError("مدل باید مسیر فایل محلی و بدون پیمایش پوشه باشد.")
             model_data = item.get("model_data")
+            asset_index = item.get("model_asset")
+            if model_data is None and asset_index is not None:
+                assets = project.get("assets", [])
+                if isinstance(asset_index, bool) or not isinstance(asset_index, int) or not isinstance(assets, list) or not 0 <= asset_index < len(assets) or not isinstance(assets[asset_index], dict) or assets[asset_index].get("kind") != "model":
+                    raise Monn3DError("ارجاع دارایی مدل در پروژه معتبر نیست.")
+                model_data = assets[asset_index].get("data")
             if model_data is not None:
                 if not isinstance(model_data, str) or len(model_data) > 48 * 1024 * 1024 or not model_data.startswith(("data:model/gltf-binary;base64,", "data:model/gltf+json;base64,", "data:application/octet-stream;base64,", "data:application/json;base64,")):
                     raise Monn3DError("دادهٔ مدل جاسازی‌شده معتبر یا کوچک‌تر از ۳۲ مگابایت نیست.")
