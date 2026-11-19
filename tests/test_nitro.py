@@ -80,7 +80,10 @@ class NitroSafetyTests(unittest.TestCase):
              "position": [3, 2, 1], "scale": [0.8, 0.8, 1.8],
              "role": "enemy", "health": 12, "speed": 3.0, "damage": 10},
             {"type": "set_world3d_player", "position": [0, -6, 1.7],
-             "speed": 9, "sensitivity": 0.15},
+             "speed": 9, "sensitivity": 0.15, "camera_mode": "third_person",
+             "camera_distance": 8},
+            {"type": "set_world3d_weapon", "damage": 4, "fire_rate": 6,
+             "projectile_speed": 40, "range": 100},
             {"type": "set_world3d_gravity", "value": 9.81},
         ])
         world = updated["world3d"]
@@ -90,6 +93,12 @@ class NitroSafetyTests(unittest.TestCase):
         self.assertEqual(world["objects"][1]["speed"], 3.0)
         self.assertEqual(world["objects"][1]["damage"], 10)
         self.assertEqual(world["player"]["speed"], 9)
+        self.assertEqual(world["player"]["camera_mode"], "third_person")
+        self.assertEqual(world["player"]["camera_distance"], 8)
+        self.assertEqual(world["weapon"]["damage"], 4)
+        self.assertEqual(world["weapon"]["fire_rate"], 6)
+        self.assertEqual(world["weapon"]["projectile_speed"], 40)
+        self.assertEqual(world["weapon"]["range"], 100)
         self.assertEqual(world["gravity"], 9.81)
 
     def test_nitro_rejects_invalid_3d_objects_and_player_values(self):
@@ -105,6 +114,14 @@ class NitroSafetyTests(unittest.TestCase):
         with self.assertRaises(NitroError):
             NitroAgent.apply_operations(sample(), [
                 {"type": "add_world3d_object", "id": "bad", "shape": "unknown"}
+            ])
+        with self.assertRaises(NitroError):
+            NitroAgent.apply_operations(sample(), [
+                {"type": "set_world3d_player", "camera_mode": "cinematic"}
+            ])
+        with self.assertRaises(NitroError):
+            NitroAgent.apply_operations(sample(), [
+                {"type": "set_world3d_weapon", "damage": 0}
             ])
 
     def test_nitro_exposes_expanded_persian_game_vocabulary(self):
