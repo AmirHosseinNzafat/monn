@@ -45,14 +45,14 @@ class LocalAccountStore:
         if not isinstance(value, str):
             raise AccountError("نام کاربری معتبر نیست.")
         value = value.strip()
-        if not re.fullmatch(r"[A-Za-z0-9_.-]{3,32}", value):
-            raise AccountError("نام کاربری باید ۳ تا ۳۲ نویسه و شامل حروف انگلیسی، عدد، نقطه، خط تیره یا زیرخط باشد.")
+        if not re.fullmatch(r"[\w.-]{3,32}", value):
+            raise AccountError("نام کاربری باید ۳ تا ۳۲ نویسه باشد و می‌تواند شامل حروف فارسی یا انگلیسی، عدد، نقطه، خط تیره و زیرخط باشد.")
         return value.lower()
 
     def register(self, username, password):
         username = self._username(username)
-        if not isinstance(password, str) or len(password) < 10 or len(password) > 256:
-            raise AccountError("گذرواژه باید حداقل ۱۰ نویسه داشته باشد.")
+        if not isinstance(password, str) or len(password) < 8 or len(password) > 256:
+            raise AccountError("گذرواژه باید حداقل ۸ نویسه داشته باشد.")
         salt = secrets.token_bytes(16)
         digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, self.ITERATIONS)
         with self._lock:
