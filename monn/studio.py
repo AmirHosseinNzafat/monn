@@ -1,6 +1,8 @@
 """Local web-based Monn Studio authoring environment."""
 import argparse
 import json
+import re
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
@@ -10,10 +12,12 @@ from .game_dsl import dumps_monn, loads_monn
 from .web_game import compile_game_to_html
 from .accounts import AccountError, LocalAccountStore
 from .nitro import NitroAgent, NitroError
+from .nitro_offline import build_offline_project
 
 STUDIO_DIR = Path(__file__).with_name("studio")
 ACCOUNTS = LocalAccountStore()
 NITRO_PROPOSALS = {}
+PROJECT_LOCATIONS = {}
 
 
 class StudioHandler(BaseHTTPRequestHandler):
@@ -49,15 +53,15 @@ class StudioHandler(BaseHTTPRequestHandler):
             self._json(200, {"ok": True, "username": self._user()})
             return
         if path == "/api/nitro/status":
-            self._json(200, {"ok": True, "provider": "ollama-local",
-                             "default_model": NitroAgent.DEFAULT_MODEL,
-                             "endpoint": NitroAgent.DEFAULT_URL, "account_required": True})
+            self._json(200, {"ok": True, "provider": "builtin-offline",
+                             "network_required": False, "model_required": False,
+                             "account_required": False})
             return
         self.send_error(404)
 
     def do_POST(self):
         path = urlparse(self.path).path
-        if path not in ("/api/build", "/api/source", "/api/parse", "/api/auth/register", "/api/auth/login", "/api/auth/logout", "/api/nitro/propose", "/api/nitro/approve"):
+        if path not in ("/api/build", "/api/source", "/api/parse", "/api/auth/register", "/api/auth/login", "/api/auth/logout", "/api/nitro/propose", "/api/nitro/approve", "/api/nitro/offline", "/api/project/create", "/api/project/save"):
             self.send_error(404)
             return
         try:
@@ -66,6 +70,53 @@ class StudioHandler(BaseHTTPRequestHandler):
                 raise ValueError("حجم پروژه باید کمتر از ۴۸ مگابایت باشد.")
             raw = self.rfile.read(length)
             payload = json.loads(raw.decode("utf-8"))
+            if path == "/api/nitro/offline":
+                project = build_offline_project(payload.get("prompt", ""), payload.get("template", "starter"))
+                validated = GameProject(project)
+                self._json(200, {"ok": True, "project": validated.data,
+                                 "generator": "Monn deterministic offline rules"})
+                return
+            if path == "/api/project/create":
+                project = build_offline_project(payload.get("prompt", ""), payload.get("template", "starter"))
+                title = str(payload.get("title") or project.get("meta", {}).get("title") or "Monn Project").strip()[:64]
+                project["meta"]["title"] = title
+                validated = GameProject(project)
+                try:
+                    import tkinter as tk
+                    from tkinter import filedialog
+                    root = tk.Tk()
+                    root.withdraw()
+                    try:
+                        root.attributes("-topmost", True)
+                    except Exception:
+                        pass
+                    folder = filedialog.askdirectory(parent=root, title="انتخاب پوشهٔ پروژه Monn", mustexist=True)
+                    root.destroy()
+                except Exception as exc:
+                    raise ValueError("پنجرهٔ انتخاب پوشه در این محیط در دسترس نیست؛ نسخهٔ دسکتاپ ویندوز را اجرا کن. جزئیات: {}".format(exc))
+                if not folder:
+                    raise ValueError("انتخاب پوشه لغو شد.")
+                safe = re.sub(r"[^A-Za-z0-9_.-]+", "-", title).strip("-.")[:48] or "monn-project"
+                target_dir = Path(folder)
+                target_dir.mkdir(parents=True, exist_ok=True)
+                target = target_dir / (safe + ".mongame.json")
+                if target.exists():
+                    target = target_dir / (safe + "-" + uuid.uuid4().hex[:6] + ".mongame.json")
+                target.write_text(json.dumps(validated.data, ensure_ascii=False, indent=2), encoding="utf-8")
+                folder_id = uuid.uuid4().hex
+                PROJECT_LOCATIONS[folder_id] = str(target)
+                self._json(200, {"ok": True, "folder_id": folder_id, "path": str(target),
+                                 "project": validated.data})
+                return
+            if path == "/api/project/save":
+                folder_id = payload.get("folder_id")
+                target_path = PROJECT_LOCATIONS.get(folder_id)
+                if not target_path:
+                    raise ValueError("مسیر پروژه معتبر نیست؛ پروژه را دوباره از مسیر انتخابی باز کن.")
+                validated = GameProject(payload.get("project"))
+                Path(target_path).write_text(json.dumps(validated.data, ensure_ascii=False, indent=2), encoding="utf-8")
+                self._json(200, {"ok": True, "path": target_path})
+                return
             if path in ("/api/auth/register", "/api/auth/login"):
                 if path.endswith("register"):
                     result = ACCOUNTS.register(payload.get("username"), payload.get("password"))
