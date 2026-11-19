@@ -32,6 +32,32 @@ class Monn3DValidationTests(unittest.TestCase):
         self.assertEqual(enemy["speed"], 3.5)
         self.assertEqual(enemy["damage"], 12)
 
+    def test_camera_modes_and_weapon_settings_are_normalized(self):
+        result = validate_world3d({"world3d": {
+            "player": {"camera_mode": "third_person", "camera_distance": 9},
+            "weapon": {"damage": 4, "fire_rate": 6, "projectile_speed": 42, "range": 120},
+        }})
+        self.assertEqual(result["player"]["camera_mode"], "third_person")
+        self.assertEqual(result["player"]["camera_distance"], 9)
+        self.assertEqual(result["weapon"]["damage"], 4)
+        self.assertEqual(result["weapon"]["fire_rate"], 6)
+        self.assertEqual(result["weapon"]["projectile_speed"], 42)
+        self.assertEqual(result["weapon"]["range"], 120)
+
+    def test_invalid_camera_and_weapon_settings_are_rejected(self):
+        invalid = [
+            ({"player": {"camera_mode": "cinematic"}}, "camera"),
+            ({"player": {"camera_distance": 99}}, "distance"),
+            ({"weapon": {"damage": 0}}, "damage"),
+            ({"weapon": {"fire_rate": 0}}, "fire_rate"),
+            ({"weapon": {"projectile_speed": 999}}, "projectile_speed"),
+            ({"weapon": {"range": -1}}, "range"),
+        ]
+        for settings, label in invalid:
+            with self.subTest(setting=label):
+                with self.assertRaises(Monn3DError):
+                    validate_world3d({"world3d": settings})
+
     def test_invalid_enemy_ai_parameters_are_rejected(self):
         for field, value in (("speed", 500), ("damage", -1), ("health", 0)):
             with self.subTest(field=field):
