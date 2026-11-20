@@ -101,6 +101,39 @@
     }catch(error){status.textContent=error.message;toast("خطای حساب: "+error.message);}
   };
   window.apiJSON=postJSON;
+
+  window.MonnOffline.openTemplate=async function(key){
+    try{
+      const result=await postJSON("/api/nitro/offline",{template:key,prompt:""});
+      project=result.project;
+      if(typeof ensureProjectShape==="function")ensureProjectShape();
+      active=project.meta.start_scene;
+      if(typeof render==="function")render();
+      if(typeof persist==="function")persist();
+      try{localStorage.setItem("monn-welcome-seen","1")}catch(_){}
+      closePreview();
+      toast("قالب آماده بارگذاری شد: "+project.meta.title);
+    }catch(error){toast("بارگذاری قالب ناموفق بود: "+error.message);}
+  };
+  window.MonnOffline.startBlank=function(){
+    project={meta:{id:"my-monn-game",title:"بازی تازه من",start_scene:"start"},ui:{menu_enabled:true,start_label:"شروع بازی",settings_label:"تنظیمات",show_health:true,show_inventory:true,show_quests:true,elements:[]},player:{health:100,max_health:100,stats:{امتیاز:0},inventory:[]},characters:[],quests:[],assets:[],scenes:[{id:"start",title:"شروع بازی",text:"به پروژهٔ تازه‌ات خوش آمدی. از پنل سمت راست متن و انتخاب‌ها را بساز.",choices:[{id:"next",text:"رفتن به صحنهٔ بعد",target:"end",conditions:[],effects:[]}]},{id:"end",title:"پایان نمونه",text:"این صحنه را با داستان خودت جایگزین کن.",choices:[]}],world:{enabled:false,width:960,height:540,sprites:[],player:{x:40,y:40,width:28,height:40,speed:3,color:"#42d7e8"}},world3d:{enabled:false,objects:[],player:{position:[0,1,6],camera_mode:"third_person",camera_distance:7,speed:5,sensitivity:.2},lighting:{ambient:.45,directional:.9,direction:[-.5,-1,-.3]}}};
+    if(typeof ensureProjectShape==="function")ensureProjectShape();
+    active="start";if(typeof render==="function")render();if(typeof persist==="function")persist();
+    try{localStorage.setItem("monn-welcome-seen","1")}catch(_){}
+    closePreview();toast("پروژهٔ خالی آماده است.");
+  };
+  function showWelcome(){
+    if(localStorage.getItem("monn-welcome-seen")==="1")return;
+    modal("به Monn Studio خوش آمدی",'<p class="muted">برای اینکه با صفحهٔ خالی شروع نکنی، یکی از پروژه‌های آماده را باز کن. همهٔ قالب‌ها سبک‌اند و بدون اینترنت یا مدل هوش مصنوعی ساخته می‌شوند.</p>'+
+      '<div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px">'+
+      '<div class="choice-card"><b>نامه‌ای زیر باران</b><p class="muted">داستان عاشقانهٔ تصویری با چند انتخاب و دو پایان</p><button class="primary" onclick="MonnOffline.openTemplate(\'romance_short\')">باز کردن داستان</button></div>'+
+      '<div class="choice-card"><b>کارگاه شماره ۷</b><p class="muted">پروژهٔ متوسط با محیط صنعتی، مدل‌های هندسی و نور</p><button class="primary" onclick="MonnOffline.openTemplate(\'workshop_medium\')">باز کردن کارگاه</button></div>'+
+      '<div class="choice-card"><b>پایگاه نبرد</b><p class="muted">پایگاه سه‌بعدی، دشمن آموزشی و هدف تمرینی</p><button class="primary" onclick="MonnOffline.openTemplate(\'battle_base\')">باز کردن بتل‌بیس</button></div>'+
+      '<div class="choice-card"><b>ماجراجویی تازه</b><p class="muted">قالب سبک برای ساخت بازی از صفر</p><button class="primary" onclick="MonnOffline.openTemplate(\'starter\')">باز کردن پروژه</button></div></div>'+
+      '<div class="row" style="margin-top:12px"><button onclick="MonnOffline.startBlank()">شروع از صفحهٔ خالی</button><button onclick="localStorage.setItem(\'monn-welcome-seen\',\'1\');closePreview()">فعلاً نه</button></div>',"900px");
+  }
+  window.addEventListener("load",function(){try{showWelcome()}catch(error){console.error("Monn welcome:",error)}},{once:true});
+
   // Prevent the browser's Google/Chrome context menu and show Monn's own menu.
   const menu=document.createElement("div");
   menu.id="monn-context-menu";
