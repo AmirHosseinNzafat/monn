@@ -436,7 +436,15 @@ $("credits-close").addEventListener("click", hideCredits);
 $("save").addEventListener("click", saveGame);
 $("load").addEventListener("click", loadGame);
 $("reset").addEventListener("click", resetGame);
-render();
+function showRuntimeError(error){
+  let panel=$("monn-runtime-error");
+  if(!panel){panel=document.createElement("section");panel.id="monn-runtime-error";panel.style.cssText="position:fixed;inset:16px;z-index:99999;overflow:auto;padding:24px;background:#170f19;color:#fff;border:2px solid #ff737d;border-radius:16px;font:14px/2 Tahoma,Arial,sans-serif;box-shadow:0 20px 80px #000b";document.body.append(panel);}
+  panel.innerHTML="<h2>بازی به‌درستی اجرا نشد</h2><p>موتور Monn خطایی هنگام راه‌اندازی یا اجرای بازی پیدا کرد. صفحه خالی نمانده تا بتوانی متن خطا را ببینی و گزارش کنی.</p><pre style='white-space:pre-wrap;direction:ltr;text-align:left;background:#080b12;padding:12px;border-radius:8px'></pre><button onclick='location.reload()' style='padding:10px 16px'>تلاش دوباره</button>";
+  panel.querySelector("pre").textContent=String(error&&error.stack||error||"خطای ناشناخته");
+}
+window.addEventListener("error",event=>showRuntimeError(event.error||event.message));
+window.addEventListener("unhandledrejection",event=>showRuntimeError(event.reason));
+try{render()}catch(error){showRuntimeError(error)}
 """.replace("__GAME__", payload).replace("__FINGERPRINT__", json.dumps(fingerprint))
     return """<!doctype html>
 <html lang="fa" dir="rtl"><head><meta charset="utf-8">
